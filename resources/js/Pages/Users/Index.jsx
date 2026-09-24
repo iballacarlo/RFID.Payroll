@@ -1,0 +1,7 @@
+import { Link, router, usePage } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
+import AppLayout from '../../Layouts/AppLayout';
+import Pagination from '../../components/Pagination';
+import SettingsTabs from '../../components/SettingsTabs';
+import { fullName } from '../../lib/format';
+export default function UsersIndex({ users }) { const { auth } = usePage().props; const remove = (user) => { if (confirm(`Delete ${user.employee ? fullName(user.employee) : user.name}?`)) router.delete(`/settings/accounts/${user.id}`); }; return <AppLayout title="Settings" subtitle="Manage system accounts, backups, and data recovery."><SettingsTabs /><div className="panel"><div className="panel-heading"><h2>Accounts</h2><Link className="button" href="/settings/accounts/create"><Plus size={16} />Add Account</Link></div><div className="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Linked Faculty</th><th /></tr></thead><tbody>{users.data.length ? users.data.map((user) => <tr key={user.id}><td>{user.employee ? fullName(user.employee) : user.name}</td><td>{user.email}</td><td><span className="badge">{user.role.replace('_', ' ')}</span></td><td>{fullName(user.employee)}</td><td className="actions"><Link href={`/settings/accounts/${user.id}/edit`}>Edit</Link>{auth.user.id !== user.id && <button className="link-danger" type="button" onClick={() => remove(user)}>Delete</button>}</td></tr>) : <tr><td colSpan="5">No user accounts yet.</td></tr>}</tbody></table></div><Pagination links={users.links} /></div></AppLayout>; }
