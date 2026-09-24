@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeCredentialController;
 use App\Http\Controllers\FacultyRankController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\UserController;
@@ -22,6 +23,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
 
     Route::resource('employees', EmployeeController::class)->except(['show'])->middleware('role:admin');
+    Route::post('employees/{employee}/credentials/enrollments', [EmployeeCredentialController::class, 'store'])->name('employees.credentials.enrollments.store')->middleware('role:admin');
+    Route::get('employees/{employee}/credentials/enrollments/{enrollment}', [EmployeeCredentialController::class, 'show'])->name('employees.credentials.enrollments.show')->middleware('role:admin');
+    Route::delete('employees/{employee}/credentials/enrollments/{enrollment}', [EmployeeCredentialController::class, 'destroy'])->name('employees.credentials.enrollments.destroy')->middleware('role:admin');
     Route::get('employees/{employee}/schedule', [EmployeeController::class, 'editSchedule'])->name('employees.schedule.edit')->middleware('role:admin');
     Route::put('employees/{employee}/schedule', [EmployeeController::class, 'updateSchedule'])->name('employees.schedule.update')->middleware('role:admin');
     Route::get('faculty-ranks', [FacultyRankController::class, 'index'])->name('ranks.index')->middleware('role:admin');

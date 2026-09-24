@@ -1,6 +1,7 @@
 import { Link, useForm } from '@inertiajs/react';
-import { Fingerprint, Link2Off, Radio, RefreshCw } from 'lucide-react';
-import { useRef, useState } from 'react';
+import axios from 'axios';
+import { CircleCheck, Fingerprint, Link2Off, LoaderCircle, Radio, RefreshCw, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 
 function emailUsername(firstName, lastName) {
@@ -22,6 +23,8 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
     const fingerprintInput = useRef(null);
     const [rfidEditing, setRfidEditing] = useState(isNew);
     const [fingerprintEditing, setFingerprintEditing] = useState(isNew);
+    const [enrollment, setEnrollment] = useState(null);
+    const [enrollmentError, setEnrollmentError] = useState('');
     const form = useForm({
         employee_no: employee.employee_no || nextEmployeeNumber || '', first_name: employee.first_name || '', middle_name: employee.middle_name || '', last_name: employee.last_name || '', suffix: employee.suffix || '', email: emailUsername(employee.first_name || '', employee.last_name || ''), contact_no: employee.contact_no || '', highest_educational_attainment: employee.highest_educational_attainment || '', years_of_service: employee.years_of_service ?? '', faculty_rank_id: employee.faculty_rank_id || '', status: employee.status || 'active', contract_start: employee.contract_start || '', contract_end: employee.contract_end || '', rfid_uid: employee.rfid_cards?.[0]?.rfid_uid || '', fingerprint_code: employee.fingerprint_templates?.[0]?.fingerprint_code || '', finger_label: employee.fingerprint_templates?.[0]?.finger_label || '', rfid_reregister: false, fingerprint_reregister: false,
     });
@@ -34,16 +37,50 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
         form.transform((data) => ({ ...data, email: data.email ? `${data.email}@cvsu.edu.ph` : null }));
         employee.id ? form.put(`/employees/${employee.id}`) : form.post('/employees');
     };
-    const beginRegistration = (type) => {
-        const isRfid = type === 'rfid';
-        if (isRfid) {
-            setRfidEditing(true);
-            form.setData('rfid_reregister', true);
-        } else {
-            setFingerprintEditing(true);
-            form.setData('fingerprint_reregister', true);
+    useEffect(() => {
+        if (!enrollment?.id || !['pending', 'processing'].includes(enrollment.status)) return undefined;
+
+        const checkStatus = async () => {
+            try {
+                const { data } = await axios.get(`/employees/${employee.id}/credentials/enrollments/${enrollment.id}`);
+                setEnrollment(data);
+                if (data.status === 'completed') {
+                    if (data.method === 'rfid') {
+                        form.setData('rfid_uid', data.identifier);
+                        setRfidEditing(false);
+                    } else {
+                        form.setData('fingerprint_code', data.identifier);
+                        setFingerprintEditing(false);
+                    }
+                }
+            } catch (error) {
+                setEnrollmentError(error.response?.data?.message || 'Could not check the device registration status.');
+            }
+        };
+
+        const timer = window.setInterval(checkStatus, 2000);
+        return () => window.clearInterval(timer);
+    }, [enrollment?.id, enrollment?.status]);
+
+    const startHardwareRegistration = async (method) => {
+        if (isNew) return;
+        setEnrollmentError('');
+        setEnrollment({ method, status: 'starting' });
+        try {
+            const { data } = await axios.post(`/employees/${employee.id}/credentials/enrollments`, {
+                method,
+                finger_label: method === 'fingerprint' ? form.data.finger_label : null,
+            });
+            setEnrollment(data);
+        } catch (error) {
+            setEnrollment(null);
+            setEnrollmentError(error.response?.data?.message || 'Could not start device registration.');
         }
-        requestAnimationFrame(() => (isRfid ? rfidInput : fingerprintInput).current?.select());
+    };
+    const cancelHardwareRegistration = async () => {
+        if (!enrollment?.id) return;
+        const { data } = await axios.delete(`/employees/${employee.id}/credentials/enrollments/${enrollment.id}`);
+        setEnrollment(data);
     };
     const unlinkCredential = (type) => {
         if (type === 'rfid') {
@@ -72,11 +109,17 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             <label>Contract Start<input type="date" value={form.data.contract_start || ''} onChange={(e) => form.setData('contract_start', e.target.value)} /></label>
             <label>Contract End<input type="date" value={form.data.contract_end || ''} onChange={(e) => form.setData('contract_end', e.target.value)} /></label>
             <div className="form-section-title" id="attendance-identifiers"><span>03</span><div><strong>Attendance identifiers</strong><small>Hardware credentials used for time records</small></div></div>
+            {enrollment && <div className={`credential-enrollment-status is-${enrollment.status}`}>
+                {['starting', 'pending', 'processing'].includes(enrollment.status) ? <LoaderCircle className="spin" size={18} /> : <CircleCheck size={18} />}
+                <span><strong>{enrollment.status === 'completed' ? 'Registration complete' : enrollment.status === 'failed' ? 'Registration failed' : enrollment.status === 'expired' ? 'Registration expired' : enrollment.status === 'cancelled' ? 'Registration cancelled' : 'Waiting for attendance device'}</strong><small>{enrollment.message || (enrollment.method === 'rfid' ? 'Tap the RFID card on the RC522.' : 'Follow the fingerprint scanner prompts.')}</small></span>
+                {['pending', 'processing'].includes(enrollment.status) && <button type="button" onClick={cancelHardwareRegistration} aria-label="Cancel registration"><X size={16} /></button>}
+            </div>}
+            {enrollmentError && <div className="credential-enrollment-error">{enrollmentError}</div>}
             <div className="credential-row">
                 <div className="credential-heading"><span className="credential-icon"><Radio size={19} /></span><span><strong>RFID card</strong><small>{form.data.rfid_uid ? 'Registered' : 'Not registered'}</small></span></div>
                 <label>Card UID<input ref={rfidInput} value={form.data.rfid_uid} readOnly={!rfidEditing} placeholder="Scan or enter card UID" onChange={(e) => form.setData('rfid_uid', e.target.value.trim().toUpperCase())} /></label>
                 <div className="credential-actions">
-                    <button className="credential-action" type="button" onClick={() => beginRegistration('rfid')}>{form.data.rfid_uid ? <RefreshCw size={16} /> : <Radio size={16} />}{form.data.rfid_uid ? 'Re-register' : 'Register'}</button>
+                    <button className="credential-action" type="button" disabled={isNew || ['starting', 'pending', 'processing'].includes(enrollment?.status)} onClick={() => startHardwareRegistration('rfid')}>{form.data.rfid_uid ? <RefreshCw size={16} /> : <Radio size={16} />}{isNew ? 'Save first' : form.data.rfid_uid ? 'Re-register' : 'Register'}</button>
                     {form.data.rfid_uid && <button className="credential-unlink" type="button" onClick={() => unlinkCredential('rfid')} aria-label="Unlink RFID card"><Link2Off size={16} /></button>}
                 </div>
             </div>
@@ -85,7 +128,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                 <label>Template ID<input ref={fingerprintInput} readOnly={!fingerprintEditing} placeholder="Example: FP-1" value={form.data.fingerprint_code} onChange={(e) => form.setData('fingerprint_code', e.target.value.trim().toUpperCase())} /></label>
                 <label>Finger<select disabled={!fingerprintEditing} value={form.data.finger_label} onChange={(e) => form.setData('finger_label', e.target.value)}><option value="">Select finger</option><option>Right thumb</option><option>Right index</option><option>Right middle</option><option>Left thumb</option><option>Left index</option><option>Left middle</option></select></label>
                 <div className="credential-actions">
-                    <button className="credential-action" type="button" onClick={() => beginRegistration('fingerprint')}>{form.data.fingerprint_code ? <RefreshCw size={16} /> : <Fingerprint size={16} />}{form.data.fingerprint_code ? 'Re-register' : 'Register'}</button>
+                    <button className="credential-action" type="button" disabled={isNew || ['starting', 'pending', 'processing'].includes(enrollment?.status)} onClick={() => startHardwareRegistration('fingerprint')}>{form.data.fingerprint_code ? <RefreshCw size={16} /> : <Fingerprint size={16} />}{isNew ? 'Save first' : form.data.fingerprint_code ? 'Re-register' : 'Register'}</button>
                     {form.data.fingerprint_code && <button className="credential-unlink" type="button" onClick={() => unlinkCredential('fingerprint')} aria-label="Unlink fingerprint"><Link2Off size={16} /></button>}
                 </div>
             </div>

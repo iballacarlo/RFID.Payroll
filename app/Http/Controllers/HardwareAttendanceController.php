@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\FingerprintTemplate;
+use App\Models\HardwareEnrollment;
 use App\Models\RfidCard;
 use App\Services\AttendanceCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class HardwareAttendanceController extends Controller
 {
@@ -16,17 +18,8 @@ class HardwareAttendanceController extends Controller
 
     public function tap(Request $request)
     {
-        $expectedApiKey = config('services.hardware.api_key');
-        $providedApiKey = $request->string('api_key')->toString();
-
-        if (! is_string($expectedApiKey)
-            || $expectedApiKey === ''
-            || $providedApiKey === ''
-            || ! hash_equals($expectedApiKey, $providedApiKey)) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Invalid hardware API key.',
-            ], 401);
+        if ($unauthorized = $this->authorizeHardware($request)) {
+            return $unauthorized;
         }
 
         $data = $request->validate([
@@ -70,6 +63,146 @@ class HardwareAttendanceController extends Controller
             'time_in' => $result['log']->time_in,
             'time_out' => $result['log']->time_out,
         ]);
+    }
+
+    public function pendingEnrollment(Request $request)
+    {
+        if ($unauthorized = $this->authorizeHardware($request)) {
+            return $unauthorized;
+        }
+
+        HardwareEnrollment::whereIn('status', ['pending', 'processing'])
+            ->where('expires_at', '<=', now())
+            ->update(['status' => 'expired', 'message' => 'The registration request expired.']);
+
+        $enrollment = HardwareEnrollment::with('employee')
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('expires_at', '>', now())
+            ->oldest()
+            ->first();
+
+        if (! $enrollment) {
+            return response()->noContent();
+        }
+
+        if ($enrollment->status === 'pending') {
+            $enrollment->update(['status' => 'processing']);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'id' => (string) $enrollment->id,
+            'method' => $enrollment->method,
+            'employee' => $this->displayName($enrollment->employee),
+            'current_identifier' => $enrollment->current_identifier ?? '',
+        ]);
+    }
+
+    public function completeEnrollment(Request $request, HardwareEnrollment $enrollment)
+    {
+        if ($unauthorized = $this->authorizeHardware($request)) {
+            return $unauthorized;
+        }
+
+        if (! in_array($enrollment->status, ['pending', 'processing'], true) || $enrollment->expires_at->isPast()) {
+            return response()->json(['ok' => false, 'message' => 'Enrollment is no longer active.'], 409);
+        }
+
+        $currentCredentialId = $enrollment->method === 'rfid'
+            ? optional($enrollment->employee->rfidCards()->first())->id
+            : optional($enrollment->employee->fingerprintTemplates()->first())->id;
+        $table = $enrollment->method === 'rfid' ? 'rfid_cards' : 'fingerprint_templates';
+        $column = $enrollment->method === 'rfid' ? 'rfid_uid' : 'fingerprint_code';
+
+        $data = $request->validate([
+            'status' => ['required', 'in:completed,failed'],
+            'identifier' => [
+                'nullable',
+                'required_if:status,completed',
+                'string',
+                'max:100',
+            ],
+            'message' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($data['status'] === 'failed') {
+            $enrollment->update([
+                'status' => 'failed',
+                'message' => $data['message'] ?? 'Hardware registration failed.',
+                'completed_at' => now(),
+            ]);
+
+            return response()->json(['ok' => true, 'status' => 'failed']);
+        }
+
+        $duplicate = DB::table($table)
+            ->where($column, strtoupper($data['identifier']))
+            ->when($currentCredentialId, fn ($query) => $query->where('id', '!=', $currentCredentialId))
+            ->exists();
+
+        if ($duplicate) {
+            $enrollment->update([
+                'status' => 'failed',
+                'message' => 'That credential is already assigned to another faculty member.',
+                'completed_at' => now(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'That credential is already assigned to another faculty member.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($data, $enrollment) {
+            if ($enrollment->method === 'rfid') {
+                $credential = $enrollment->employee->rfidCards()->firstOrNew();
+                $credential->fill([
+                    'rfid_uid' => strtoupper($data['identifier']),
+                    'status' => 'active',
+                    'registered_at' => now(),
+                ])->save();
+            } else {
+                $credential = $enrollment->employee->fingerprintTemplates()->firstOrNew();
+                $credential->fill([
+                    'fingerprint_code' => strtoupper($data['identifier']),
+                    'finger_label' => $enrollment->finger_label ?: 'Primary finger',
+                    'status' => 'active',
+                    'registered_at' => now(),
+                ])->save();
+            }
+
+            $enrollment->update([
+                'identifier' => strtoupper($data['identifier']),
+                'status' => 'completed',
+                'message' => 'Credential registered successfully.',
+                'completed_at' => now(),
+            ]);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'status' => 'completed',
+            'identifier' => strtoupper($data['identifier']),
+        ]);
+    }
+
+    private function authorizeHardware(Request $request)
+    {
+        $expectedApiKey = config('services.hardware.api_key');
+        $providedApiKey = $request->header('X-Hardware-Key', $request->input('api_key', ''));
+
+        if (is_string($expectedApiKey)
+            && $expectedApiKey !== ''
+            && is_string($providedApiKey)
+            && $providedApiKey !== ''
+            && hash_equals($expectedApiKey, $providedApiKey)) {
+            return null;
+        }
+
+        return response()->json([
+            'ok' => false,
+            'message' => 'Invalid hardware API key.',
+        ], 401);
     }
 
     private function recordAttendance(int $employeeId, string $method): array

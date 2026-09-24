@@ -3409,6 +3409,26 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.35fr) minmax(170px, 0.8fr) auto;
     padding: 4px 0 18px;
 }
+.credential-enrollment-status {
+    align-items: center;
+    background: #e8f1eb;
+    border: 1px solid #b8d3c3;
+    color: #176b46;
+    display: flex;
+    gap: 12px;
+    grid-column: 1 / -1;
+    min-height: 58px;
+    padding: 10px 14px;
+}
+.credential-enrollment-status > span { display: grid; flex: 1; gap: 2px; }
+.credential-enrollment-status strong { font-size: 12px; }
+.credential-enrollment-status small { color: #4f6d5d; font-size: 11px; }
+.credential-enrollment-status button { align-items: center; background: transparent; color: #355b47; display: flex; justify-content: center; padding: 8px; }
+.credential-enrollment-status.is-failed, .credential-enrollment-status.is-expired { background: #faeaea; border-color: #dfb0b0; color: #9c3030; }
+.credential-enrollment-status.is-cancelled { background: #f0f2f1; border-color: #cdd5d0; color: #5e6d65; }
+.credential-enrollment-error { background: #faeaea; border-left: 3px solid #b53c3c; color: #9c3030; font-size: 12px; grid-column: 1 / -1; padding: 10px 12px; }
+.spin { animation: credential-spin 0.9s linear infinite; }
+@keyframes credential-spin { to { transform: rotate(360deg); } }
 .credential-heading { align-items: center; display: flex; gap: 11px; min-height: 44px; }
 .credential-heading > span:last-child { display: grid; gap: 3px; }
 .credential-heading strong { color: #203f2f; font-size: 13px; }

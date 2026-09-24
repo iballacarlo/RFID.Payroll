@@ -57,12 +57,69 @@ class EmployeeCredentialTest extends TestCase
         );
     }
 
-    private function employee(): Employee
+    public function test_esp32_can_complete_an_rfid_enrollment_request(): void
+    {
+        config(['services.hardware.api_key' => 'device-secret']);
+        $employee = $this->employee();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $start = $this->actingAs($admin)
+            ->postJson(route('employees.credentials.enrollments.store', $employee), [
+                'method' => 'rfid',
+            ])
+            ->assertCreated()
+            ->json();
+
+        $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->getJson('/api/hardware/enrollment')
+            ->assertOk()
+            ->assertJsonPath('id', (string) $start['id'])
+            ->assertJsonPath('method', 'rfid');
+
+        $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->postJson("/api/hardware/enrollments/{$start['id']}/result", [
+                'status' => 'completed',
+                'identifier' => 'A1B2C3D4',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'completed');
+
+        $this->assertDatabaseHas('rfid_cards', [
+            'employee_id' => $employee->id,
+            'rfid_uid' => 'A1B2C3D4',
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_hardware_cannot_assign_a_duplicate_credential(): void
+    {
+        config(['services.hardware.api_key' => 'device-secret']);
+        $firstEmployee = $this->employee();
+        $firstEmployee->rfidCards()->create(['rfid_uid' => 'TAKEN-CARD', 'status' => 'active']);
+        $secondEmployee = $this->employee('COS-9002');
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $enrollmentId = $this->actingAs($admin)
+            ->postJson(route('employees.credentials.enrollments.store', $secondEmployee), ['method' => 'rfid'])
+            ->json('id');
+
+        $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->postJson("/api/hardware/enrollments/{$enrollmentId}/result", [
+                'status' => 'completed',
+                'identifier' => 'TAKEN-CARD',
+            ])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseMissing('rfid_cards', ['employee_id' => $secondEmployee->id]);
+        $this->assertDatabaseHas('hardware_enrollments', ['id' => $enrollmentId, 'status' => 'failed']);
+    }
+
+    private function employee(string $employeeNumber = 'COS-9001'): Employee
     {
         $rank = FacultyRank::where('is_active', true)->firstOrFail();
 
         return Employee::create([
-            'employee_no' => 'COS-9001',
+            'employee_no' => $employeeNumber,
             'first_name' => 'Test',
             'last_name' => 'Faculty',
             'faculty_rank_id' => $rank->id,

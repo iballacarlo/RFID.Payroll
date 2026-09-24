@@ -40,6 +40,11 @@ class Employee extends Model
         return $this->hasMany(FingerprintTemplate::class);
     }
 
+    public function hardwareEnrollments()
+    {
+        return $this->hasMany(HardwareEnrollment::class);
+    }
+
     public function attendanceLogs()
     {
         return $this->hasMany(AttendanceLog::class);

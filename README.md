@@ -1,4 +1,43 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CvSU Imus Payroll System
+
+Laravel payroll and attendance system for CvSU Imus DCS faculty.
+
+## Attendance hardware
+
+The firmware in `hardware/RFID/RFID.ino` supports:
+
+- ESP32 DevKit V1
+- MFRC522 RFID reader
+- AS608 fingerprint sensor
+- 16x2 I2C LCD, buzzer, and status LEDs
+
+Before uploading the sketch, copy `device_config.example.h` as `device_config.h`, then set `WIFI_NAME`, `WIFI_PASSWORD`, and `API_KEY`. The firmware `API_KEY` must exactly match the Railway `HARDWARE_API_KEY` variable. The real config file is ignored by Git.
+
+The configured API base is `https://payroll-system.up.railway.app/api/hardware`. Change it if the Railway public domain changes.
+
+### Enrollment flow
+
+1. Save the faculty profile.
+2. Open **Faculty -> Profile & IDs**.
+3. Select **Register** or **Re-register** for RFID or fingerprint.
+4. Follow the attendance device display. RFID requires one card tap; AS608 requires two scans of the same finger.
+5. The ESP32 sends the captured UID or AS608 template ID directly to Laravel.
+
+Enrollment requests expire after three minutes. The ESP32 polls for a request every two seconds.
+
+### ESP32 pin map
+
+| Device | ESP32 pin |
+| --- | --- |
+| RC522 SS/SDA | GPIO 5 |
+| RC522 RST | GPIO 4 |
+| RC522 SCK/MISO/MOSI | GPIO 18/19/23 |
+| AS608 RX/TX | GPIO 13/14 |
+| I2C SDA/SCL | GPIO 21/22 |
+| Green/Red/Yellow LED | GPIO 25/27/32 |
+| Buzzer | GPIO 26 |
+
+## Laravel
 
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
