@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\FacultyRank;
 use App\Models\FacultySchedule;
 use App\Models\FacultyScheduleBreak;
 use App\Models\PayrollPeriod;
+use App\Models\PayrollRecord;
 use App\Models\User;
 use App\Services\AttendanceCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,6 +110,34 @@ class PayrollRulesTest extends TestCase
         $response->assertRedirect(route('payroll.index'));
         $response->assertSessionHasErrors(['start_date', 'end_date']);
         $this->assertSame(0, PayrollPeriod::count());
+    }
+
+    public function test_payroll_uses_employee_rate_instead_of_rank_rate(): void
+    {
+        $employee = $this->employeeWithMondaySchedule();
+        $employee->update([
+            'faculty_rank_id' => FacultyRank::where('is_active', true)->firstOrFail()->id,
+            'rate_amount' => 100,
+        ]);
+        AttendanceLog::create([
+            'employee_id' => $employee->id,
+            'attendance_date' => '2026-09-07',
+            'total_hours' => 8,
+            'status' => 'present',
+        ]);
+        $period = PayrollPeriod::create([
+            'period_name' => 'September 1-15, 2026',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-15',
+            'status' => 'open',
+        ]);
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->post(route('payroll.generate', $period))
+            ->assertSessionHasNoErrors();
+
+        $record = PayrollRecord::where('employee_id', $employee->id)->firstOrFail();
+        $this->assertSame(800.0, (float) $record->gross_pay);
     }
 
     private function employeeWithMondaySchedule(): Employee

@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeCredentialController;
 use App\Http\Controllers\FacultyRankController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,8 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::resource('employees', EmployeeController::class)->except(['show'])->middleware('role:admin');
     Route::post('employees/{employee}/credentials/enrollments', [EmployeeCredentialController::class, 'store'])->name('employees.credentials.enrollments.store')->middleware('role:admin');

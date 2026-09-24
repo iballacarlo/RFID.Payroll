@@ -19,6 +19,7 @@ class Employee extends Model
         'contact_no',
         'highest_educational_attainment',
         'years_of_service',
+        'service_start_date',
         'position',
         'department',
         'employment_type',
@@ -43,6 +44,11 @@ class Employee extends Model
     public function hardwareEnrollments()
     {
         return $this->hasMany(HardwareEnrollment::class);
+    }
+
+    public function employmentHistories()
+    {
+        return $this->hasMany(EmploymentHistory::class)->orderByDesc('started_on');
     }
 
     public function attendanceLogs()

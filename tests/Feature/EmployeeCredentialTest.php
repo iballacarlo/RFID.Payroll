@@ -114,6 +114,56 @@ class EmployeeCredentialTest extends TestCase
         $this->assertDatabaseHas('hardware_enrollments', ['id' => $enrollmentId, 'status' => 'failed']);
     }
 
+    public function test_faculty_email_and_phone_use_institutional_formats(): void
+    {
+        $employee = $this->employee();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->put(route('employees.update', $employee), $this->employeePayload($employee, [
+                'email' => 'not-an-email@gmail.com',
+                'contact_no' => '09171234567',
+            ]))
+            ->assertSessionHasErrors(['email', 'contact_no']);
+
+        $this->actingAs($admin)
+            ->put(route('employees.update', $employee), $this->employeePayload($employee, [
+                'email' => 'test.faculty@cvsu.edu.ph',
+                'contact_no' => '+639171234567',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'email' => 'test.faculty@cvsu.edu.ph',
+            'contact_no' => '+639171234567',
+        ]);
+    }
+
+    public function test_admin_can_save_structured_employment_history(): void
+    {
+        $employee = $this->employee();
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->put(route('employees.update', $employee), $this->employeePayload($employee, [
+                'employment_history' => [[
+                    'employer' => 'Previous State University',
+                    'position' => 'Instructor',
+                    'started_on' => '2018-06-01',
+                    'ended_on' => '2020-05-01',
+                ]],
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('employment_histories', [
+            'employee_id' => $employee->id,
+            'employer' => 'Previous State University',
+            'position' => 'Instructor',
+            'started_on' => '2018-06-01 00:00:00',
+            'ended_on' => '2020-05-01 00:00:00',
+        ]);
+    }
+
     private function employee(string $employeeNumber = 'COS-9001'): Employee
     {
         $rank = FacultyRank::where('is_active', true)->firstOrFail();
@@ -138,7 +188,11 @@ class EmployeeCredentialTest extends TestCase
             'employee_no' => $employee->employee_no,
             'first_name' => $employee->first_name,
             'last_name' => $employee->last_name,
+            'email' => $employee->email ?: 'test.faculty@cvsu.edu.ph',
+            'highest_educational_attainment' => "Master's Degree",
+            'service_start_date' => '2020-06-01',
             'faculty_rank_id' => $employee->faculty_rank_id,
+            'rate_amount' => $employee->rate_amount,
             'status' => $employee->status,
             'rfid_uid' => '',
             'fingerprint_code' => '',

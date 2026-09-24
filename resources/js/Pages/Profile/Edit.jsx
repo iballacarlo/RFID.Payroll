@@ -1,0 +1,83 @@
+import { useForm } from '@inertiajs/react';
+import { BriefcaseBusiness, KeyRound, Save, UserRound } from 'lucide-react';
+import AppLayout from '../../Layouts/AppLayout';
+import { money } from '../../lib/format';
+
+function localPhoneNumber(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.startsWith('63')) return digits.slice(2, 12);
+    if (digits.startsWith('0')) return digits.slice(1, 11);
+    return digits.slice(0, 10);
+}
+
+function ErrorMessage({ message }) {
+    return message ? <small className="field-error">{message}</small> : null;
+}
+
+export default function ProfileEdit({ profileUser }) {
+    const employee = profileUser.employee;
+    const form = useForm({
+        name: profileUser.name || '',
+        first_name: employee?.first_name || '',
+        middle_name: employee?.middle_name || '',
+        last_name: employee?.last_name || '',
+        suffix: employee?.suffix || '',
+        email: profileUser.email || employee?.email || '',
+        contact_no: localPhoneNumber(employee?.contact_no),
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    const submit = (event) => {
+        event.preventDefault();
+        form.transform((data) => ({
+            ...data,
+            email: data.email.trim().toLowerCase(),
+            contact_no: employee && data.contact_no ? `+63${data.contact_no}` : null,
+        }));
+        form.put('/profile', {
+            preserveScroll: true,
+            onSuccess: () => form.reset('current_password', 'password', 'password_confirmation'),
+        });
+    };
+
+    return <AppLayout title="My Profile" subtitle="Review and maintain your personal account information.">
+        <form className="panel form-grid profile-form" onSubmit={submit}>
+            <div className="form-section-title"><span><UserRound size={17} /></span><div><strong>Personal information</strong><small>Information displayed on your account</small></div></div>
+            {employee ? <>
+                <div className="name-fields">
+                    <label>First Name<input autoComplete="given-name" value={form.data.first_name} onChange={(event) => form.setData('first_name', event.target.value)} required /><ErrorMessage message={form.errors.first_name} /></label>
+                    <label>Middle Name<input autoComplete="additional-name" value={form.data.middle_name} onChange={(event) => form.setData('middle_name', event.target.value)} /></label>
+                    <label>Last Name<input autoComplete="family-name" value={form.data.last_name} onChange={(event) => form.setData('last_name', event.target.value)} required /><ErrorMessage message={form.errors.last_name} /></label>
+                    <label>Suffix<input maxLength="20" placeholder="Jr., III" value={form.data.suffix} onChange={(event) => form.setData('suffix', event.target.value)} /></label>
+                </div>
+                <div className="profile-contact-fields">
+                    <label>Institutional Email<input type="email" autoComplete="email" placeholder="name@cvsu.edu.ph" pattern="[^@\s]+@cvsu\.edu\.ph" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} required /><ErrorMessage message={form.errors.email} /></label>
+                    <label>Phone Number<div className="phone-input"><span>+63</span><input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength="10" pattern="9[0-9]{9}" placeholder="9XX XXX XXXX" value={form.data.contact_no} onChange={(event) => form.setData('contact_no', event.target.value.replace(/\D/g, '').slice(0, 10))} /></div><ErrorMessage message={form.errors.contact_no} /></label>
+                </div>
+                <div className="form-section-title"><span><BriefcaseBusiness size={17} /></span><div><strong>Employment details</strong><small>Managed by the payroll administrator</small></div></div>
+                <div className="profile-employment-grid">
+                    <label>Employee Number<input value={employee.employee_no || '-'} readOnly /></label>
+                    <label>Rank<input value={employee.faculty_rank?.name || '-'} readOnly /></label>
+                    <label>Hourly Rate<input value={money(employee.rate_amount)} readOnly /></label>
+                    <label>Employment Status<input value={employee.status || '-'} readOnly /></label>
+                    <label>Contract Start<input value={employee.contract_start || '-'} readOnly /></label>
+                    <label>Contract End<input value={employee.contract_end || '-'} readOnly /></label>
+                </div>
+                <p className="profile-readonly-note">Contact an administrator to correct employment, rank, rate, contract, or status information.</p>
+            </> : <div className="profile-contact-fields">
+                <label>Display Name<input autoComplete="name" value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} required /><ErrorMessage message={form.errors.name} /></label>
+                <label>Email Address<input type="email" autoComplete="email" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} required /><ErrorMessage message={form.errors.email} /></label>
+            </div>}
+
+            <div className="form-section-title"><span><KeyRound size={17} /></span><div><strong>Account security</strong><small>Leave these fields blank to keep your current password</small></div></div>
+            <div className="profile-security-grid">
+                <label>Current Password<input type="password" autoComplete="current-password" value={form.data.current_password} onChange={(event) => form.setData('current_password', event.target.value)} /><ErrorMessage message={form.errors.current_password} /></label>
+                <label>New Password<input type="password" autoComplete="new-password" minLength="8" placeholder="Minimum 8 characters" value={form.data.password} onChange={(event) => form.setData('password', event.target.value)} /><ErrorMessage message={form.errors.password} /></label>
+                <label>Confirm New Password<input type="password" autoComplete="new-password" minLength="8" value={form.data.password_confirmation} onChange={(event) => form.setData('password_confirmation', event.target.value)} /></label>
+            </div>
+            <div className="form-actions"><button type="submit" disabled={form.processing}><Save size={17} />{form.processing ? 'Saving...' : 'Save Changes'}</button></div>
+        </form>
+    </AppLayout>;
+}

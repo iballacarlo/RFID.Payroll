@@ -1,14 +1,16 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, LayoutDashboard, LogOut, Settings2, ShieldCheck, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { dateLabel, fullName } from '../lib/format';
 
 const navigation = [
-    { label: 'Dashboard', code: 'OV', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
-    { label: 'Faculty', code: 'FC', href: '/employees', icon: GraduationCap, tone: 'nav-faculty', roles: ['admin'], active: (url) => url.startsWith('/employees') },
-    { label: 'Ranks', code: 'RK', href: '/faculty-ranks', icon: ChartNoAxesCombined, tone: 'nav-ranks', roles: ['admin'], active: (url) => url.startsWith('/faculty-ranks') },
-    { label: 'Attendance', code: 'AT', href: '/attendance', icon: Clock3, tone: 'nav-attendance', active: (url) => url.startsWith('/attendance') },
-    { label: 'Payroll', code: 'PY', href: '/payroll', icon: Wallet, tone: 'nav-payroll', active: (url) => url.startsWith('/payroll') },
-    { label: 'Settings', code: 'ST', href: '/settings/accounts', icon: Settings2, tone: 'nav-settings', roles: ['admin'], active: (url) => url.startsWith('/settings') },
+    { label: 'Dashboard', group: 'Overview', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
+    { label: 'Faculty', group: 'Faculty Management', href: '/employees', icon: GraduationCap, tone: 'nav-faculty', roles: ['admin'], active: (url) => url.startsWith('/employees') },
+    { label: 'Ranks', group: 'Faculty Management', href: '/faculty-ranks', icon: ChartNoAxesCombined, tone: 'nav-ranks', roles: ['admin'], active: (url) => url.startsWith('/faculty-ranks') },
+    { label: 'Attendance', group: 'Operations', href: '/attendance', icon: Clock3, tone: 'nav-attendance', active: (url) => url.startsWith('/attendance') },
+    { label: 'Payroll', group: 'Operations', href: '/payroll', icon: Wallet, tone: 'nav-payroll', active: (url) => url.startsWith('/payroll') },
+    { label: 'My Profile', group: 'Account', href: '/profile', icon: UserRound, tone: 'nav-profile', active: (url) => url.startsWith('/profile') },
+    { label: 'Settings', group: 'Administration', href: '/settings/accounts', icon: Settings2, tone: 'nav-settings', roles: ['admin'], active: (url) => url.startsWith('/settings') },
 ];
 
 export default function AppLayout({ title, subtitle, children }) {
@@ -16,24 +18,33 @@ export default function AppLayout({ title, subtitle, children }) {
     const { auth, flash, errors } = page.props;
     const { url } = page;
     const user = auth.user;
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    useEffect(() => {
+        setSidebarCollapsed(window.localStorage.getItem('sidebar-collapsed') === 'true');
+    }, []);
+    const toggleSidebar = () => {
+        const next = !sidebarCollapsed;
+        setSidebarCollapsed(next);
+        window.localStorage.setItem('sidebar-collapsed', String(next));
+    };
+    const availableNavigation = navigation.filter((item) => !item.roles || item.roles.includes(user.role));
+    const navigationGroups = [...new Set(availableNavigation.map((item) => item.group))];
     const module = url.startsWith('/employees') ? 'faculty'
         : url.startsWith('/faculty-ranks') ? 'ranks'
             : url.startsWith('/settings') ? 'settings'
+                : url.startsWith('/profile') ? 'profile'
                 : url.startsWith('/attendance') ? 'attendance'
                     : url.startsWith('/payroll') ? 'payroll'
                         : 'dashboard';
-    const moduleIndex = { dashboard: '01', faculty: '02', ranks: '03', settings: '04', attendance: '05', payroll: '06' }[module];
-
     const logout = () => router.post('/logout');
 
     return (
         <>
             <Head title={`${title} | Payroll System`} />
-            <aside className="sidebar">
+            <aside className={`sidebar${sidebarCollapsed ? ' is-collapsed' : ''}`}>
                 <div className="brand">
                     <div className="brand-logos">
                         <img src="/images/cvsu-logo.png" alt="Cavite State University logo" />
-                        <img src="/images/dcs-logo.png" alt="Department of Computer Studies logo" />
                     </div>
                     <div className="brand-copy">
                         <small>Cavite State University</small>
@@ -41,14 +52,16 @@ export default function AppLayout({ title, subtitle, children }) {
                         <span>DCS Payroll</span>
                     </div>
                 </div>
-                <div className="sidebar-section-label">Operations</div>
                 <nav aria-label="Main navigation">
-                    {navigation.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => (
-                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
-                            <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
-                            <span className="nav-copy">{item.label}<small>{item.code}</small></span>
-                        </Link>
-                    ))}
+                    {navigationGroups.map((group) => <div className="nav-group" key={group}>
+                        <div className="sidebar-section-label">{group}</div>
+                        {availableNavigation.filter((item) => item.group === group).map((item) => (
+                            <Link key={item.href} href={item.href} title={sidebarCollapsed ? item.label : undefined} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
+                                <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
+                                <span className="nav-copy">{item.label}</span>
+                            </Link>
+                        ))}
+                    </div>)}
                 </nav>
                 <div className="sidebar-account">
                     <ShieldCheck size={16} />
@@ -56,19 +69,18 @@ export default function AppLayout({ title, subtitle, children }) {
                 </div>
                 <button className="logout-button" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
             </aside>
-            <main className={`main module-${module}`}>
+            <button className={`sidebar-toggle${sidebarCollapsed ? ' is-collapsed' : ''}`} type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
+            <main className={`main module-${module}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
                 <header className="topbar">
                     <div className="editorial-heading">
-                        <span className="page-index">{moduleIndex}</span>
                         <div>
-                        <span className="page-kicker">DCS / {module.replace('-', ' ')}</span>
-                        <h1>{title}</h1>
-                        <p>{subtitle}</p>
+                            <h1>{title}</h1>
+                            <p>{subtitle}</p>
                         </div>
                     </div>
                     <div className="topbar-meta">
                         <span className="date-chip"><CalendarDays size={16} />{dateLabel()}</span>
-                        <div className="user-chip"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></div>
+                        <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></Link>
                     </div>
                 </header>
                 {flash?.success && <div className="alert success">{flash.success}</div>}

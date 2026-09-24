@@ -1,5 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { CalendarClock, ScanLine, ShieldCheck } from 'lucide-react';
+import { CalendarClock, Eye, EyeOff, ScanLine, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Login() {
@@ -42,7 +42,7 @@ export default function Login() {
                         <label>Password
                             <span className="password-wrap">
                                 <input type={showPassword ? 'text' : 'password'} value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} required autoComplete="current-password" />
-                                <button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}><span className="eye-icon" /></button>
+                                <button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} title={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}</button>
                             </span>
                         </label>
                         <button className="full" type="submit" disabled={form.processing}>{form.processing ? 'Signing in...' : 'Sign in to system'}</button>

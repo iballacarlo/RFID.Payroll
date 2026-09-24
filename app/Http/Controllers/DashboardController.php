@@ -6,8 +6,8 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRecord;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -21,6 +21,7 @@ class DashboardController extends Controller
             $employeeId = $user->employee_id;
 
             return Inertia::render('Dashboard', [
+                'contractWarnings' => $employeeId ? $this->contractWarnings($employeeId) : collect(),
                 'attendanceTrend' => $this->attendanceTrend($employeeId),
                 'latestPayrolls' => $employeeId ? PayrollRecord::with(['employee', 'payrollPeriod'])->where('employee_id', $employeeId)->latest()->take(5)->get() : collect(),
                 'recentAttendance' => $employeeId ? AttendanceLog::with('employee')->where('employee_id', $employeeId)->latest()->take(8)->get() : collect(),
@@ -28,6 +29,7 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('Dashboard', [
+            'contractWarnings' => $this->contractWarnings(),
             'employeeCount' => Employee::count(),
             'presentToday' => AttendanceLog::where('attendance_date', $today)->whereNotNull('time_in')->count(),
             'openPeriods' => PayrollPeriod::where('status', '!=', 'finalized')->count(),
@@ -35,6 +37,23 @@ class DashboardController extends Controller
             'latestPayrolls' => PayrollRecord::with(['employee', 'payrollPeriod'])->latest()->take(5)->get(),
             'recentAttendance' => AttendanceLog::with('employee')->latest()->take(8)->get(),
         ]);
+    }
+
+    private function contractWarnings(?int $employeeId = null)
+    {
+        $today = Carbon::today();
+
+        return Employee::query()
+            ->when($employeeId, fn ($query) => $query->whereKey($employeeId))
+            ->where('status', 'active')
+            ->whereBetween('contract_end', [$today->toDateString(), $today->copy()->addDays(7)->toDateString()])
+            ->orderBy('contract_end')
+            ->get(['id', 'employee_no', 'first_name', 'middle_name', 'last_name', 'suffix', 'contract_end'])
+            ->map(function (Employee $employee) use ($today) {
+                $employee->setAttribute('days_remaining', (int) $today->diffInDays(Carbon::parse($employee->contract_end), false));
+
+                return $employee;
+            });
     }
 
     private function attendanceTrend(?int $employeeId = null): array

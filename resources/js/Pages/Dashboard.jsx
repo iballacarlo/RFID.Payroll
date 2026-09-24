@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CalendarCheck2, Clock3, GraduationCap, Wallet } from 'lucide-react';
+import { ArrowUpRight, CalendarCheck2, CalendarClock, Clock3, GraduationCap, Wallet } from 'lucide-react';
 import { useEffect } from 'react';
 import AppLayout from '../Layouts/AppLayout';
 import { fullName, money, time12 } from '../lib/format';
@@ -12,7 +12,7 @@ function MetricTile({ href, icon: Icon, label, value, tone }) {
     </Link>;
 }
 
-export default function Dashboard({ employeeCount, presentToday, openPeriods, attendanceTrend = [], latestPayrolls, recentAttendance }) {
+export default function Dashboard({ employeeCount, presentToday, openPeriods, attendanceTrend = [], latestPayrolls, recentAttendance, contractWarnings = [] }) {
     const { auth } = usePage().props;
     const isFaculty = auth.user.role === 'faculty';
 
@@ -20,7 +20,7 @@ export default function Dashboard({ employeeCount, presentToday, openPeriods, at
         const refreshDashboard = () => {
             if (!document.hidden) {
                 router.reload({
-                    only: ['employeeCount', 'presentToday', 'openPeriods', 'attendanceTrend', 'latestPayrolls', 'recentAttendance'],
+                    only: ['employeeCount', 'presentToday', 'openPeriods', 'attendanceTrend', 'latestPayrolls', 'recentAttendance', 'contractWarnings'],
                     preserveScroll: true,
                     preserveState: true,
                 });
@@ -35,6 +35,11 @@ export default function Dashboard({ employeeCount, presentToday, openPeriods, at
     }, []);
 
     return <AppLayout title="Dashboard" subtitle={isFaculty ? 'Your attendance and payroll summary.' : 'Overview of faculty attendance and payroll activity.'}>
+        {contractWarnings.length > 0 && <section className="contract-warning" role="status">
+            <span className="contract-warning-icon"><CalendarClock size={20} /></span>
+            <div><strong>Contract expiration reminder</strong><span>{contractWarnings.map((employee) => `${fullName(employee)} - ${employee.days_remaining === 0 ? 'ends today' : `${employee.days_remaining} day${employee.days_remaining === 1 ? '' : 's'} left`}`).join(' | ')}</span></div>
+            {!isFaculty && <Link href="/employees">Review faculty <ArrowUpRight size={15} /></Link>}
+        </section>}
         <section className={`bento-dashboard${isFaculty ? ' faculty-bento' : ''}`}>
             {!isFaculty && <>
                 <MetricTile href={auth.user.role === 'admin' ? '/employees' : '/attendance'} icon={GraduationCap} label="Faculty" value={employeeCount} tone="metric-green" />

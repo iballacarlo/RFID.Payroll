@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class EmployeeController extends Controller
@@ -35,10 +36,12 @@ class EmployeeController extends Controller
 
         if ($sort === 'name') {
             $employees->orderBy('last_name', $direction)->orderBy('first_name', $direction);
-        } elseif ($sort === 'rank' || $sort === 'rate') {
+        } elseif ($sort === 'rank') {
             $employees->leftJoin('faculty_ranks as sorted_ranks', 'employees.faculty_rank_id', '=', 'sorted_ranks.id')
                 ->select('employees.*')
-                ->orderBy($sort === 'rate' ? 'sorted_ranks.rate_amount' : 'sorted_ranks.name', $direction);
+                ->orderBy('sorted_ranks.name', $direction);
+        } elseif ($sort === 'rate') {
+            $employees->orderBy('rate_amount', $direction);
         } elseif ($sort === 'weekly_hours') {
             $scheduleHours = DB::table('faculty_schedules')
                 ->selectRaw('employee_id, SUM(TIMESTAMPDIFF(MINUTE, start_time, end_time)) as weekly_minutes')
@@ -58,6 +61,13 @@ class EmployeeController extends Controller
         $employees = $employees
             ->paginate(10)
             ->withQueryString();
+        $today = Carbon::today();
+        $employees->getCollection()->each(function (Employee $employee) use ($today) {
+            $daysRemaining = $employee->contract_end
+                ? $today->diffInDays(Carbon::parse($employee->contract_end), false)
+                : null;
+            $employee->setAttribute('contract_days_remaining', $daysRemaining !== null && $daysRemaining >= 0 && $daysRemaining <= 7 ? $daysRemaining : null);
+        });
 
         return Inertia::render('Employees/Index', [
             'employees' => $employees,
@@ -87,6 +97,7 @@ class EmployeeController extends Controller
             $employee = Employee::create($data);
             $this->saveDevices($request, $employee);
             $this->saveSchedules($request, $employee);
+            $this->saveEmploymentHistory($request, $employee);
 
         });
 
@@ -95,7 +106,7 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $employee->load(['rfidCards', 'fingerprintTemplates']);
+        $employee->load(['rfidCards', 'fingerprintTemplates', 'employmentHistories']);
 
         return Inertia::render('Employees/Form', [
             'employee' => $employee,
@@ -110,6 +121,7 @@ class EmployeeController extends Controller
             $employee->update($this->validated($request, $employee->id));
             $this->saveDevices($request, $employee);
             $this->saveSchedules($request, $employee);
+            $this->saveEmploymentHistory($request, $employee);
         });
 
         return redirect()->route('employees.index')->with('success', 'Faculty record updated.');
@@ -147,30 +159,57 @@ class EmployeeController extends Controller
             'last_name' => ['required', 'max:100'],
             'suffix' => ['nullable', 'string', 'max:20'],
             'email' => [
-                'nullable',
-                'email',
+                'required',
+                'email:rfc',
+                'ends_with:@cvsu.edu.ph',
                 'max:100',
                 Rule::unique('employees', 'email')->ignore($employeeId),
             ],
-            'contact_no' => ['nullable', 'max:20'],
-            'highest_educational_attainment' => ['nullable', 'string', 'max:255'],
-            'years_of_service' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
+            'contact_no' => ['nullable', 'regex:/^\+639\d{9}$/'],
+            'highest_educational_attainment' => ['required', Rule::in([
+                "Bachelor's Degree",
+                'Post-Baccalaureate Certificate or Diploma',
+                "Master's Degree Units",
+                "Master's Degree",
+                'Doctorate Degree Units',
+                'Doctorate Degree',
+                'Postdoctoral Studies',
+            ])],
+            'service_start_date' => ['required', 'date', 'before_or_equal:today'],
             'faculty_rank_id' => ['required', 'exists:faculty_ranks,id'],
-            'contract_start' => ['nullable', 'date'],
-            'contract_end' => ['nullable', 'date', 'after_or_equal:contract_start'],
+            'rate_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'contract_start' => ['nullable', 'required_with:contract_end', 'date'],
+            'contract_end' => ['nullable', 'required_with:contract_start', 'date', 'after_or_equal:contract_start'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
-        $rank = FacultyRank::where('is_active', true)
-            ->whereNotNull('salary_grade')
-            ->findOrFail($data['faculty_rank_id']);
         $data['rate_type'] = 'hourly';
-        $data['rate_amount'] = $rank->rate_amount;
         $data['position'] = 'COS Faculty Member';
         $data['department'] = 'Department of Computer Studies';
         $data['employment_type'] = 'Contract of Service';
 
         return $data;
+    }
+
+    private function saveEmploymentHistory(Request $request, Employee $employee): void
+    {
+        $data = $request->validate([
+            'employment_history' => ['nullable', 'array', 'max:20'],
+            'employment_history.*.employer' => ['required', 'string', 'max:150'],
+            'employment_history.*.position' => ['required', 'string', 'max:150'],
+            'employment_history.*.started_on' => ['required', 'date'],
+            'employment_history.*.ended_on' => ['nullable', 'date'],
+        ]);
+
+        $employee->employmentHistories()->delete();
+        foreach ($data['employment_history'] ?? [] as $history) {
+            if ($history['ended_on'] && $history['ended_on'] < $history['started_on']) {
+                throw ValidationException::withMessages([
+                    'employment_history' => 'Employment end month must be after its start month.',
+                ]);
+            }
+            $employee->employmentHistories()->create($history);
+        }
     }
 
     private function saveDevices(Request $request, Employee $employee): void

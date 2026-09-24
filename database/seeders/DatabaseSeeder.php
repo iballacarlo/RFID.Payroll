@@ -4,11 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\AttendanceLog;
 use App\Models\Employee;
-use Illuminate\Support\Carbon;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
                 'middle_name' => 'Santos',
                 'last_name' => 'Reyes',
                 'email' => 'maria.reyes@cvsu.edu.ph',
-                'contact_no' => '09171234567',
+                'contact_no' => '+639171234567',
                 'position' => 'COS Faculty Member',
                 'rate_type' => 'daily',
                 'rate_amount' => 1200,
@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
                 'middle_name' => 'Cruz',
                 'last_name' => 'Dela Cruz',
                 'email' => 'juan.delacruz@cvsu.edu.ph',
-                'contact_no' => '09181234567',
+                'contact_no' => '+639181234567',
                 'position' => 'COS Instructor',
                 'rate_type' => 'hourly',
                 'rate_amount' => 180,
@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
                 'middle_name' => null,
                 'last_name' => 'Garcia',
                 'email' => 'andrea.garcia@cvsu.edu.ph',
-                'contact_no' => '09191234567',
+                'contact_no' => '+639191234567',
                 'position' => 'COS Faculty Member',
                 'rate_type' => 'daily',
                 'rate_amount' => 1100,
@@ -71,6 +71,8 @@ class DatabaseSeeder extends Seeder
                 'last_name' => $item['last_name'],
                 'email' => $item['email'],
                 'contact_no' => $item['contact_no'],
+                'highest_educational_attainment' => "Master's Degree",
+                'service_start_date' => '2020-06-01',
                 'position' => $item['position'],
                 'department' => 'Department of Computer Studies',
                 'employment_type' => 'Contract of Service',

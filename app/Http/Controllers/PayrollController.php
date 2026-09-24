@@ -8,8 +8,8 @@ use App\Models\PayrollPeriod;
 use App\Models\PayrollRecord;
 use App\Services\AttendanceCalculator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -65,8 +65,8 @@ class PayrollController extends Controller
 
             $daysWorked = $logs->filter(fn ($log) => (float) $log->total_hours > 0)->count();
             $hoursWorked = $logs->sum('total_hours');
-            $rateType = $employee->facultyRank?->rate_type ?? $employee->rate_type;
-            $rateAmount = (float) ($employee->facultyRank?->rate_amount ?? $employee->rate_amount);
+            $rateType = $employee->rate_type;
+            $rateAmount = (float) $employee->rate_amount;
 
             if ($rateType === 'hourly') {
                 $grossPay = round($hoursWorked * $rateAmount, 2);
