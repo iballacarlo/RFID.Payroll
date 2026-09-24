@@ -4,9 +4,9 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeCredentialController;
-use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FacultyRankController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfileController;
@@ -61,4 +61,5 @@ Route::middleware('auth')->group(function () {
     Route::post('payroll/periods', [PayrollController::class, 'storePeriod'])->name('payroll.periods.store')->middleware('role:admin,payroll_staff');
     Route::post('payroll/periods/{period}/generate', [PayrollController::class, 'generate'])->name('payroll.generate')->middleware('role:admin,payroll_staff');
     Route::get('payroll/records/{record}', [PayrollController::class, 'show'])->name('payroll.records.show');
+    Route::put('payroll/records/{record}', [PayrollController::class, 'update'])->name('payroll.records.update')->middleware('role:admin,payroll_staff');
 });

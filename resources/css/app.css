@@ -3758,3 +3758,150 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     .contract-warning { align-items: flex-start; flex-wrap: wrap; }
     .contract-warning > a { margin-left: 51px; }
 }
+
+/* Official CvSU-Imus payslip */
+.profile-government-fields {
+    display: grid;
+    gap: 18px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.payslip-toolbar {
+    align-items: center;
+    display: flex;
+    gap: 9px;
+    justify-content: flex-end;
+    margin: 0 auto 14px;
+    max-width: 1040px;
+}
+.payslip-toolbar button { align-items: center; display: inline-flex; gap: 7px; }
+.payslip-toolbar .payslip-edit-button { background: #fff; border-color: #9db4a8; color: #174f38; margin-right: auto; }
+
+.payroll-adjustment-editor {
+    background: #fff;
+    border: 1px solid #c9d7cf;
+    border-top: 4px solid var(--cvsu-green);
+    display: grid;
+    gap: 20px;
+    margin: 0 auto 20px;
+    max-width: 1040px;
+    padding: 22px;
+}
+.payroll-editor-heading { align-items: end; display: flex; gap: 30px; justify-content: space-between; }
+.payroll-editor-heading span { color: var(--cvsu-green); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.payroll-editor-heading h2 { font-size: 20px; margin: 4px 0 0; }
+.payroll-editor-heading p { color: #617269; font-size: 12px; margin: 0; max-width: 460px; text-align: right; }
+.payroll-adjustment-editor fieldset { border: 1px solid #d4dfd8; margin: 0; padding: 14px 16px 17px; }
+.payroll-adjustment-editor legend { color: #234b39; font-size: 12px; font-weight: 800; padding: 0 7px; }
+.payroll-editor-grid { display: grid; gap: 13px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.currency-input { align-items: center; border: 1px solid #b8c9bf; display: flex; margin-top: 7px; }
+.currency-input:focus-within { border-color: var(--cvsu-green); box-shadow: 0 0 0 3px rgba(23, 120, 75, 0.1); }
+.currency-input span { border-right: 1px solid #d4dfd8; color: #5d6f65; font-size: 10px; font-weight: 800; padding: 0 9px; }
+.currency-input input { border: 0; box-shadow: none; min-width: 0; }
+.currency-input input:focus { box-shadow: none; }
+
+.official-payslip {
+    background: #fff;
+    border: 2px solid #173f2e;
+    box-shadow: 0 8px 28px rgba(18, 48, 35, 0.08);
+    color: #17231d;
+    margin: 0 auto;
+    max-width: 1040px;
+    width: 100%;
+}
+.official-payslip-header {
+    align-items: center;
+    border-bottom: 2px solid #173f2e;
+    display: grid;
+    gap: 22px;
+    grid-template-columns: 92px 1fr 130px;
+    min-height: 172px;
+    padding: 22px 30px;
+    position: relative;
+}
+.official-payslip-header img { height: 82px; justify-self: center; object-fit: contain; width: 82px; }
+.official-payslip-header > div { text-align: center; }
+.official-payslip-header h2 { color: #143f2d; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; letter-spacing: 0; margin: 0; text-transform: uppercase; }
+.official-payslip-header strong { display: block; font-size: 17px; margin: 3px 0 8px; }
+.official-payslip-header p { font-size: 12px; line-height: 1.55; margin: 0; }
+.official-payslip-header a { color: #176b46; display: inline-block; font-size: 12px; font-weight: 700; margin-top: 3px; }
+.official-copy-label { align-self: start; background: #f4c44d; color: #183c2d; font-size: 9px; font-weight: 900; justify-self: end; padding: 7px 9px; text-transform: uppercase; }
+
+.official-employee-details { display: grid; gap: 7px; padding: 20px 28px; }
+.official-employee-details > div { align-items: baseline; display: grid; gap: 18px; grid-template-columns: 150px minmax(0, 1fr); }
+.official-employee-details span { color: #52645b; font-size: 12px; }
+.official-employee-details strong { font-size: 13px; overflow-wrap: anywhere; }
+
+.official-pay-columns { border-bottom: 2px solid #173f2e; border-top: 2px solid #173f2e; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.official-pay-column { display: flex; flex-direction: column; min-height: 390px; padding: 0 22px 0; }
+.official-pay-column + .official-pay-column { border-left: 2px solid #173f2e; }
+.official-column-heading { align-items: baseline; background: #e9f1ed; display: flex; justify-content: space-between; margin: 0 -22px 11px; padding: 10px 22px; }
+.official-column-heading span { color: #174f38; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.official-column-heading small { color: #64766d; font-size: 9px; }
+.official-pay-row { align-items: baseline; display: flex; gap: 18px; justify-content: space-between; min-height: 26px; padding: 4px 0; }
+.official-pay-row span { font-size: 12px; }
+.official-pay-row strong { font-size: 12px; white-space: nowrap; }
+.official-pay-row.is-subrow span { padding-left: 15px; }
+.official-loan-label { color: #42564c; font-size: 10px; font-weight: 900; margin: 5px 0 1px; }
+.official-pay-row.is-total { border-top: 1px solid #9eb1a7; margin-top: auto; min-height: 42px; padding-top: 11px; }
+.official-pay-row.is-total span,
+.official-pay-row.is-total strong { color: #123e2b; font-size: 13px; font-weight: 900; }
+
+.official-net-income { align-items: center; background: #f5f7f6; border-bottom: 2px solid #173f2e; display: flex; justify-content: space-between; padding: 12px 28px; }
+.official-net-income span { font-size: 14px; font-weight: 900; text-transform: uppercase; }
+.official-net-income strong { color: #0d5c3a; font-size: 21px; }
+.official-government-ids { display: grid; gap: 0 28px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 17px 28px; }
+.official-government-ids > div { align-items: baseline; border-bottom: 1px solid #d9e1dd; display: grid; gap: 12px; grid-template-columns: 90px 1fr; min-height: 32px; padding: 6px 0; }
+.official-government-ids span { color: #53665c; font-size: 11px; font-weight: 700; }
+.official-government-ids strong { font-size: 12px; }
+.official-signatories { border-top: 1px solid #aebdb5; display: grid; gap: 80px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 30px 65px 26px; }
+.official-signatories > div { display: grid; justify-items: center; text-align: center; }
+.official-signatories span { align-self: start; font-size: 10px; font-weight: 900; justify-self: start; margin-bottom: 30px; text-transform: uppercase; }
+.official-signatories i { border-top: 1px solid #31473c; display: block; width: 100%; }
+.official-signatories strong { font-size: 12px; margin-top: 6px; text-transform: uppercase; }
+.official-signatories small { color: #53665c; font-size: 11px; margin-top: 2px; }
+
+@media (max-width: 1000px) {
+    .profile-government-fields,
+    .payroll-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .official-payslip-header { grid-template-columns: 74px 1fr; }
+    .official-copy-label { position: absolute; right: 18px; top: 16px; }
+}
+
+@media (max-width: 700px) {
+    .profile-government-fields,
+    .payroll-editor-grid { grid-template-columns: 1fr; }
+    .payslip-toolbar { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .payslip-toolbar .payslip-edit-button { grid-column: 1 / -1; margin: 0; }
+    .payslip-toolbar button { justify-content: center; }
+    .payroll-editor-heading { align-items: start; display: grid; gap: 8px; }
+    .payroll-editor-heading p { text-align: left; }
+    .official-payslip { overflow: hidden; }
+    .official-payslip-header { gap: 12px; grid-template-columns: 54px 1fr; min-height: 140px; padding: 20px 15px; }
+    .official-payslip-header img { height: 49px; width: 49px; }
+    .official-payslip-header h2 { font-size: 16px; }
+    .official-payslip-header strong { font-size: 13px; }
+    .official-payslip-header p,
+    .official-payslip-header a { font-size: 9px; }
+    .official-copy-label { display: none; }
+    .official-employee-details { padding: 16px; }
+    .official-employee-details > div { gap: 8px; grid-template-columns: 105px minmax(0, 1fr); }
+    .official-pay-columns { grid-template-columns: 1fr; }
+    .official-pay-column { min-height: 0; padding-bottom: 12px; }
+    .official-pay-column + .official-pay-column { border-left: 0; border-top: 2px solid #173f2e; }
+    .official-pay-row.is-total { margin-top: 14px; }
+    .official-net-income { padding: 12px 18px; }
+    .official-net-income strong { font-size: 17px; }
+    .official-government-ids { grid-template-columns: 1fr; padding: 14px 18px; }
+    .official-signatories { gap: 36px; padding: 26px 22px 22px; }
+}
+
+@media print {
+    @page { margin: 10mm; size: A4 portrait; }
+    .print-hidden { display: none !important; }
+    .official-payslip { border-color: #000; box-shadow: none; max-width: none; }
+    .official-payslip-header { min-height: 135px; padding-bottom: 14px; padding-top: 14px; }
+    .official-pay-column { min-height: 330px; }
+    .official-signatories { padding-bottom: 18px; padding-top: 22px; }
+}

@@ -65,6 +65,14 @@ class PayrollController extends Controller
 
             $daysWorked = $logs->filter(fn ($log) => (float) $log->total_hours > 0)->count();
             $hoursWorked = $logs->sum('total_hours');
+            $lateUndertimeMinutes = $logs->sum('late_minutes') + $logs->sum('undertime_minutes');
+            $scheduledDays = 0;
+            for ($date = Carbon::parse($period->start_date); $date->lte(Carbon::parse($period->end_date)); $date->addDay()) {
+                if (AttendanceCalculator::scheduledHoursForDay($employee, $date) > 0) {
+                    $scheduledDays++;
+                }
+            }
+            $absentDays = max(0, $scheduledDays - $daysWorked);
             $rateType = $employee->rate_type;
             $rateAmount = (float) $employee->rate_amount;
 
@@ -89,6 +97,22 @@ class PayrollController extends Controller
                     'total_days_worked' => $daysWorked,
                     'total_hours_worked' => $hoursWorked,
                     'gross_pay' => $grossPay,
+                    'overtime_pay' => 0,
+                    'late_undertime_minutes' => $lateUndertimeMinutes,
+                    'absent_days' => $absentDays,
+                    'other_earnings' => 0,
+                    'increase_amount' => 0,
+                    'total_earnings' => $grossPay,
+                    'withholding_tax' => 0,
+                    'gsis_deduction' => 0,
+                    'philhealth_deduction' => 0,
+                    'pag_ibig_deduction' => 0,
+                    'multi_purpose_loan' => 0,
+                    'gsis_loan' => 0,
+                    'gsis_eplus_loan' => 0,
+                    'fea_dues' => 0,
+                    'oba_deduction' => 0,
+                    'cra_deduction' => 0,
                     'total_deductions' => $deductions,
                     'total_adjustments' => 0,
                     'net_pay' => $netPay,
@@ -112,6 +136,35 @@ class PayrollController extends Controller
         }
 
         return Inertia::render('Payroll/Show', ['record' => $record]);
+    }
+
+    public function update(Request $request, PayrollRecord $record)
+    {
+        $fields = [
+            'overtime_pay', 'other_earnings', 'increase_amount', 'withholding_tax',
+            'gsis_deduction', 'philhealth_deduction', 'pag_ibig_deduction',
+            'multi_purpose_loan', 'gsis_loan', 'gsis_eplus_loan', 'fea_dues',
+            'oba_deduction', 'cra_deduction',
+        ];
+
+        $rules = array_fill_keys($fields, ['required', 'numeric', 'min:0', 'max:99999999.99']);
+        $data = $request->validate($rules);
+        $totalEarnings = round((float) $record->gross_pay
+            + (float) $data['overtime_pay']
+            + (float) $data['other_earnings']
+            + (float) $data['increase_amount'], 2);
+        $deductionFields = array_slice($fields, 3);
+        $totalDeductions = round(array_sum(array_map(fn ($field) => (float) $data[$field], $deductionFields)), 2);
+
+        $record->update([
+            ...$data,
+            'total_earnings' => $totalEarnings,
+            'total_deductions' => $totalDeductions,
+            'total_adjustments' => round((float) $data['overtime_pay'] + (float) $data['other_earnings'] + (float) $data['increase_amount'], 2),
+            'net_pay' => max(0, round($totalEarnings - $totalDeductions, 2)),
+        ]);
+
+        return redirect()->route('payroll.records.show', $record)->with('success', 'Payslip details updated.');
     }
 
     private function expectedPayDate(string $startDate, string $endDate): ?string

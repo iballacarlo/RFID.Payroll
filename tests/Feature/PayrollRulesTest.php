@@ -138,6 +138,83 @@ class PayrollRulesTest extends TestCase
 
         $record = PayrollRecord::where('employee_id', $employee->id)->firstOrFail();
         $this->assertSame(800.0, (float) $record->gross_pay);
+        $this->assertSame(800.0, (float) $record->total_earnings);
+    }
+
+    public function test_payroll_generation_records_late_undertime_and_absences_for_payslip(): void
+    {
+        $employee = $this->employeeWithMondaySchedule();
+        AttendanceLog::create([
+            'employee_id' => $employee->id,
+            'attendance_date' => '2026-09-07',
+            'late_minutes' => 12,
+            'undertime_minutes' => 18,
+            'total_hours' => 6,
+            'status' => 'late',
+        ]);
+        AttendanceLog::create([
+            'employee_id' => $employee->id,
+            'attendance_date' => '2026-09-14',
+            'total_hours' => 0,
+            'status' => 'absent',
+        ]);
+        $period = PayrollPeriod::create([
+            'period_name' => 'September 1-15, 2026',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-15',
+            'status' => 'open',
+        ]);
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->post(route('payroll.generate', $period))
+            ->assertSessionHasNoErrors();
+
+        $record = PayrollRecord::where('employee_id', $employee->id)->firstOrFail();
+        $this->assertSame(30, $record->late_undertime_minutes);
+        $this->assertSame(1.0, (float) $record->absent_days);
+    }
+
+    public function test_authorized_staff_can_update_payslip_breakdown_and_totals(): void
+    {
+        $employee = $this->employeeWithMondaySchedule();
+        $period = PayrollPeriod::create([
+            'period_name' => 'September 1-15, 2026',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-15',
+            'status' => 'processing',
+        ]);
+        $record = PayrollRecord::create([
+            'payroll_period_id' => $period->id,
+            'employee_id' => $employee->id,
+            'gross_pay' => 10000,
+            'total_earnings' => 10000,
+            'net_pay' => 10000,
+        ]);
+        $breakdown = [
+            'overtime_pay' => 500,
+            'other_earnings' => 100,
+            'increase_amount' => 400,
+            'withholding_tax' => 350,
+            'gsis_deduction' => 450,
+            'philhealth_deduction' => 200,
+            'pag_ibig_deduction' => 100,
+            'multi_purpose_loan' => 300,
+            'gsis_loan' => 200,
+            'gsis_eplus_loan' => 100,
+            'fea_dues' => 50,
+            'oba_deduction' => 25,
+            'cra_deduction' => 25,
+        ];
+
+        $this->actingAs(User::factory()->create(['role' => 'payroll_staff']))
+            ->put(route('payroll.records.update', $record), $breakdown)
+            ->assertRedirect(route('payroll.records.show', $record))
+            ->assertSessionHasNoErrors();
+
+        $record->refresh();
+        $this->assertSame(11000.0, (float) $record->total_earnings);
+        $this->assertSame(1800.0, (float) $record->total_deductions);
+        $this->assertSame(9200.0, (float) $record->net_pay);
     }
 
     private function employeeWithMondaySchedule(): Employee

@@ -61,6 +61,10 @@ class ProfileController extends Controller
                     'Postdoctoral Studies',
                 ])],
                 'service_start_date' => ['nullable', 'date', 'before_or_equal:today'],
+                'tin_no' => ['nullable', 'string', 'max:30'],
+                'gsis_no' => ['nullable', 'string', 'max:30'],
+                'pag_ibig_no' => ['nullable', 'string', 'max:30'],
+                'philhealth_no' => ['nullable', 'string', 'max:30'],
                 'employment_history' => ['nullable', 'array', 'max:20'],
                 'employment_history.*.employer' => ['required', 'string', 'max:150'],
                 'employment_history.*.position' => ['required', 'string', 'max:150'],
@@ -83,6 +87,10 @@ class ProfileController extends Controller
                     'contact_no' => $data['contact_no'] ?? null,
                     'highest_educational_attainment' => $data['highest_educational_attainment'] ?? null,
                     'service_start_date' => $data['service_start_date'] ?? null,
+                    'tin_no' => $data['tin_no'] ?? null,
+                    'gsis_no' => $data['gsis_no'] ?? null,
+                    'pag_ibig_no' => $data['pag_ibig_no'] ?? null,
+                    'philhealth_no' => $data['philhealth_no'] ?? null,
                 ]);
 
                 $employee->employmentHistories()->delete();

@@ -36,6 +36,10 @@ export default function ProfileEdit({ profileUser }) {
         contact_no: localPhoneNumber(employee?.contact_no),
         highest_educational_attainment: employee?.highest_educational_attainment || '',
         service_start_date: employee?.service_start_date?.slice(0, 7) || '',
+        tin_no: employee?.tin_no || '',
+        gsis_no: employee?.gsis_no || '',
+        pag_ibig_no: employee?.pag_ibig_no || '',
+        philhealth_no: employee?.philhealth_no || '',
         employment_history: (employee?.employment_histories || []).map((history) => ({
             employer: history.employer || '',
             position: history.position || '',
@@ -82,6 +86,12 @@ export default function ProfileEdit({ profileUser }) {
                 <div className="profile-contact-fields">
                     <label>Institutional Email<input type="email" autoComplete="email" placeholder="name@cvsu.edu.ph" pattern="[^@\s]+@cvsu\.edu\.ph" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} required /><ErrorMessage message={form.errors.email} /></label>
                     <label>Phone Number<div className="phone-input"><span>+63</span><input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength="10" pattern="9[0-9]{9}" placeholder="9XX XXX XXXX" value={form.data.contact_no} onChange={(event) => form.setData('contact_no', event.target.value.replace(/\D/g, '').slice(0, 10))} /></div><ErrorMessage message={form.errors.contact_no} /></label>
+                </div>
+                <div className="profile-government-fields">
+                    <label>TIN Number<input maxLength="30" placeholder="000-000-000-000" value={form.data.tin_no} onChange={(event) => form.setData('tin_no', event.target.value)} /><ErrorMessage message={form.errors.tin_no} /></label>
+                    <label>GSIS Number<input maxLength="30" placeholder="Enter GSIS number" value={form.data.gsis_no} onChange={(event) => form.setData('gsis_no', event.target.value)} /><ErrorMessage message={form.errors.gsis_no} /></label>
+                    <label>Pag-IBIG Number<input maxLength="30" placeholder="0000-0000-0000" value={form.data.pag_ibig_no} onChange={(event) => form.setData('pag_ibig_no', event.target.value)} /><ErrorMessage message={form.errors.pag_ibig_no} /></label>
+                    <label>PhilHealth Number<input maxLength="30" placeholder="00-000000000-0" value={form.data.philhealth_no} onChange={(event) => form.setData('philhealth_no', event.target.value)} /><ErrorMessage message={form.errors.philhealth_no} /></label>
                 </div>
                 <div className="form-section-title"><span><GraduationCap size={17} /></span><div><strong>Professional information</strong><small>Complete your educational and service profile</small></div></div>
                 <div className="profile-contact-fields">
