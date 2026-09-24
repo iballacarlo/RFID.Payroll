@@ -44,11 +44,15 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
                     'employee_id' => $request->user()->employee_id,
+                    'must_change_password' => $request->user()->must_change_password,
+                    'email_verified' => $request->user()->hasVerifiedEmail(),
                     'employee' => $request->user()->employee,
                 ] : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'temporaryCredentials' => fn () => $request->session()->get('temporary_credentials'),
+                'error' => fn () => $request->session()->get('error'),
             ],
         ];
     }

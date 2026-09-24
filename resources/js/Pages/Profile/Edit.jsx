@@ -1,7 +1,17 @@
 import { useForm } from '@inertiajs/react';
-import { BriefcaseBusiness, KeyRound, Save, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, GraduationCap, KeyRound, Plus, Save, Trash2, UserRound } from 'lucide-react';
 import AppLayout from '../../Layouts/AppLayout';
 import { money } from '../../lib/format';
+
+const attainmentOptions = [
+    "Bachelor's Degree",
+    'Post-Baccalaureate Certificate or Diploma',
+    "Master's Degree Units",
+    "Master's Degree",
+    'Doctorate Degree Units',
+    'Doctorate Degree',
+    'Postdoctoral Studies',
+];
 
 function localPhoneNumber(value) {
     const digits = String(value || '').replace(/\D/g, '');
@@ -24,6 +34,14 @@ export default function ProfileEdit({ profileUser }) {
         suffix: employee?.suffix || '',
         email: profileUser.email || employee?.email || '',
         contact_no: localPhoneNumber(employee?.contact_no),
+        highest_educational_attainment: employee?.highest_educational_attainment || '',
+        service_start_date: employee?.service_start_date?.slice(0, 7) || '',
+        employment_history: (employee?.employment_histories || []).map((history) => ({
+            employer: history.employer || '',
+            position: history.position || '',
+            started_on: history.started_on?.slice(0, 7) || '',
+            ended_on: history.ended_on?.slice(0, 7) || '',
+        })),
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -35,12 +53,21 @@ export default function ProfileEdit({ profileUser }) {
             ...data,
             email: data.email.trim().toLowerCase(),
             contact_no: employee && data.contact_no ? `+63${data.contact_no}` : null,
+            service_start_date: employee && data.service_start_date ? `${data.service_start_date}-01` : null,
+            employment_history: employee ? data.employment_history.map((history) => ({
+                ...history,
+                started_on: `${history.started_on}-01`,
+                ended_on: history.ended_on ? `${history.ended_on}-01` : null,
+            })) : [],
         }));
         form.put('/profile', {
             preserveScroll: true,
             onSuccess: () => form.reset('current_password', 'password', 'password_confirmation'),
         });
     };
+    const addEmployment = () => form.setData('employment_history', [...form.data.employment_history, { employer: '', position: '', started_on: '', ended_on: '' }]);
+    const updateEmployment = (index, field, value) => form.setData('employment_history', form.data.employment_history.map((history, historyIndex) => historyIndex === index ? { ...history, [field]: value } : history));
+    const removeEmployment = (index) => form.setData('employment_history', form.data.employment_history.filter((_, historyIndex) => historyIndex !== index));
 
     return <AppLayout title="My Profile" subtitle="Review and maintain your personal account information.">
         <form className="panel form-grid profile-form" onSubmit={submit}>
@@ -55,6 +82,22 @@ export default function ProfileEdit({ profileUser }) {
                 <div className="profile-contact-fields">
                     <label>Institutional Email<input type="email" autoComplete="email" placeholder="name@cvsu.edu.ph" pattern="[^@\s]+@cvsu\.edu\.ph" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} required /><ErrorMessage message={form.errors.email} /></label>
                     <label>Phone Number<div className="phone-input"><span>+63</span><input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength="10" pattern="9[0-9]{9}" placeholder="9XX XXX XXXX" value={form.data.contact_no} onChange={(event) => form.setData('contact_no', event.target.value.replace(/\D/g, '').slice(0, 10))} /></div><ErrorMessage message={form.errors.contact_no} /></label>
+                </div>
+                <div className="form-section-title"><span><GraduationCap size={17} /></span><div><strong>Professional information</strong><small>Complete your educational and service profile</small></div></div>
+                <div className="profile-contact-fields">
+                    <label>Highest Educational Attainment<select value={form.data.highest_educational_attainment} onChange={(event) => form.setData('highest_educational_attainment', event.target.value)}><option value="">Select attainment</option>{attainmentOptions.map((option) => <option key={option}>{option}</option>)}</select><ErrorMessage message={form.errors.highest_educational_attainment} /></label>
+                    <label>Service Start Month<input type="month" max={new Date().toISOString().slice(0, 7)} value={form.data.service_start_date} onChange={(event) => form.setData('service_start_date', event.target.value)} /><ErrorMessage message={form.errors.service_start_date} /></label>
+                </div>
+                <div className="profile-employment-history">
+                    {form.data.employment_history.map((history, index) => <div className="profile-history-row" key={index}>
+                        <label>Institution / Employer<input value={history.employer} onChange={(event) => updateEmployment(index, 'employer', event.target.value)} required /></label>
+                        <label>Position<input value={history.position} onChange={(event) => updateEmployment(index, 'position', event.target.value)} required /></label>
+                        <label>From<input type="month" value={history.started_on} onChange={(event) => updateEmployment(index, 'started_on', event.target.value)} required /></label>
+                        <label>Until<input type="month" min={history.started_on || undefined} value={history.ended_on} onChange={(event) => updateEmployment(index, 'ended_on', event.target.value)} /></label>
+                        <button className="history-delete" type="button" onClick={() => removeEmployment(index)} title="Remove employment" aria-label="Remove employment"><Trash2 size={16} /></button>
+                    </div>)}
+                    <button className="add-history-button" type="button" onClick={addEmployment}><Plus size={16} />Add Employment</button>
+                    <ErrorMessage message={form.errors.employment_history} />
                 </div>
                 <div className="form-section-title"><span><BriefcaseBusiness size={17} /></span><div><strong>Employment details</strong><small>Managed by the payroll administrator</small></div></div>
                 <div className="profile-employment-grid">

@@ -66,6 +66,11 @@ class Employee extends Model
         return $this->belongsTo(FacultyRank::class);
     }
 
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
+
     public function schedules()
     {
         return $this->hasMany(FacultySchedule::class);

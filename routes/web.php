@@ -6,6 +6,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeCredentialController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FacultyRankController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfileController;
@@ -19,16 +20,24 @@ Route::middleware('guest')->group(function () {
         ->name('login.store');
 });
 
+Route::get('email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware('signed')
+    ->name('verification.verify');
+
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware('throttle:3,10')
+        ->name('verification.send');
 
     Route::resource('employees', EmployeeController::class)->except(['show'])->middleware('role:admin');
     Route::post('employees/{employee}/credentials/enrollments', [EmployeeCredentialController::class, 'store'])->name('employees.credentials.enrollments.store')->middleware('role:admin');
     Route::get('employees/{employee}/credentials/enrollments/{enrollment}', [EmployeeCredentialController::class, 'show'])->name('employees.credentials.enrollments.show')->middleware('role:admin');
     Route::delete('employees/{employee}/credentials/enrollments/{enrollment}', [EmployeeCredentialController::class, 'destroy'])->name('employees.credentials.enrollments.destroy')->middleware('role:admin');
+    Route::post('employees/{employee}/email-verification', [EmailVerificationController::class, 'resendForEmployee'])->name('employees.email-verification.send')->middleware(['role:admin', 'throttle:5,10']);
     Route::get('employees/{employee}/schedule', [EmployeeController::class, 'editSchedule'])->name('employees.schedule.edit')->middleware('role:admin');
     Route::put('employees/{employee}/schedule', [EmployeeController::class, 'updateSchedule'])->name('employees.schedule.update')->middleware('role:admin');
     Route::get('faculty-ranks', [FacultyRankController::class, 'index'])->name('ranks.index')->middleware('role:admin');

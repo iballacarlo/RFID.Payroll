@@ -3,7 +3,7 @@ import { CalendarClock, Eye, EyeOff, ScanLine, ShieldCheck } from 'lucide-react'
 import { useState } from 'react';
 
 export default function Login() {
-    const { errors } = usePage().props;
+    const { errors, flash } = usePage().props;
     const [showPassword, setShowPassword] = useState(false);
     const form = useForm({ email: '', password: '' });
 
@@ -36,6 +36,7 @@ export default function Login() {
                     <span className="login-form-index">SECURE ACCESS</span>
                     <h2 id="login-title">Sign in</h2>
                     <p>Use your assigned system account.</p>
+                    {flash?.success && <div className="alert success">{flash.success}</div>}
                     {errors?.email && <div className="alert error">{errors.email}</div>}
                     <form onSubmit={submit}>
                         <label>Email address<input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} required autoFocus autoComplete="email" /></label>

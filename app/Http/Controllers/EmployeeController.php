@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\FacultyRank;
+use App\Models\User;
+use App\Services\GoogleAppsScriptMailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -22,7 +25,7 @@ class EmployeeController extends Controller
         ]);
         $sort = $filters['sort'] ?? 'employee_no';
         $direction = $filters['direction'] ?? 'desc';
-        $employees = Employee::with(['rfidCards', 'fingerprintTemplates', 'facultyRank', 'schedules'])
+        $employees = Employee::with(['rfidCards', 'fingerprintTemplates', 'facultyRank', 'schedules', 'user'])
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery->where('employee_no', 'like', "%{$search}%")
@@ -88,20 +91,36 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, GoogleAppsScriptMailer $mailer)
     {
-        DB::transaction(function () use ($request) {
+        $temporaryPassword = Str::random(14);
+        $credentials = DB::transaction(function () use ($request, $temporaryPassword) {
             $data = $this->validated($request, null, true);
             $data['employee_no'] = $this->nextEmployeeNumber();
 
             $employee = Employee::create($data);
-            $this->saveDevices($request, $employee);
-            $this->saveSchedules($request, $employee);
-            $this->saveEmploymentHistory($request, $employee);
+            User::create([
+                'employee_id' => $employee->id,
+                'name' => implode(' ', array_filter([$employee->first_name, $employee->middle_name, $employee->last_name, $employee->suffix])),
+                'email' => $employee->email,
+                'password' => $temporaryPassword,
+                'role' => 'faculty',
+                'must_change_password' => true,
+            ]);
 
+            return ['employee' => $employee, 'email' => $employee->email, 'password' => $temporaryPassword];
         });
 
-        return redirect()->route('employees.index')->with('success', 'Faculty member added.');
+        $verificationSent = $mailer->sendVerification($credentials['employee']->user);
+
+        return redirect(route('employees.edit', $credentials['employee']).'#attendance-identifiers')
+            ->with('success', $verificationSent
+                ? 'Faculty account created. A verification link was sent to the email address.'
+                : 'Faculty account created, but the verification email was not sent. Check the Google mail configuration.')
+            ->with('temporary_credentials', [
+                'email' => $credentials['email'],
+                'password' => $credentials['password'],
+            ]);
     }
 
     public function edit(Employee $employee)
@@ -119,6 +138,12 @@ class EmployeeController extends Controller
     {
         DB::transaction(function () use ($request, $employee) {
             $employee->update($this->validated($request, $employee->id));
+            if ($employee->user) {
+                $employee->user->update([
+                    'name' => implode(' ', array_filter([$employee->first_name, $employee->middle_name, $employee->last_name, $employee->suffix])),
+                    'email' => $employee->email,
+                ]);
+            }
             $this->saveDevices($request, $employee);
             $this->saveSchedules($request, $employee);
             $this->saveEmploymentHistory($request, $employee);
@@ -143,13 +168,17 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
-        $employee->delete();
+        DB::transaction(function () use ($employee) {
+            $employee->user?->delete();
+            $employee->delete();
+        });
 
         return redirect()->route('employees.index')->with('success', 'Faculty record deleted.');
     }
 
     private function validated(Request $request, ?int $employeeId = null, bool $isCreating = false): array
     {
+        $linkedUserId = $employeeId ? User::where('employee_id', $employeeId)->value('id') : null;
         $data = $request->validate([
             'employee_no' => $isCreating
                 ? ['nullable']
@@ -164,9 +193,10 @@ class EmployeeController extends Controller
                 'ends_with:@cvsu.edu.ph',
                 'max:100',
                 Rule::unique('employees', 'email')->ignore($employeeId),
+                Rule::unique('users', 'email')->ignore($linkedUserId),
             ],
             'contact_no' => ['nullable', 'regex:/^\+639\d{9}$/'],
-            'highest_educational_attainment' => ['required', Rule::in([
+            'highest_educational_attainment' => [$isCreating ? 'nullable' : 'required', Rule::in([
                 "Bachelor's Degree",
                 'Post-Baccalaureate Certificate or Diploma',
                 "Master's Degree Units",
@@ -175,7 +205,7 @@ class EmployeeController extends Controller
                 'Doctorate Degree',
                 'Postdoctoral Studies',
             ])],
-            'service_start_date' => ['required', 'date', 'before_or_equal:today'],
+            'service_start_date' => [$isCreating ? 'nullable' : 'required', 'date', 'before_or_equal:today'],
             'faculty_rank_id' => ['required', 'exists:faculty_ranks,id'],
             'rate_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'contract_start' => ['nullable', 'required_with:contract_end', 'date'],

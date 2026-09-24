@@ -7,6 +7,8 @@ use App\Models\FacultyRank;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -22,7 +24,10 @@ class ProfileTest extends TestCase
 
     public function test_user_can_update_their_account_and_password(): void
     {
-        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password'),
+            'must_change_password' => true,
+        ]);
 
         $this->actingAs($user)->put('/profile', [
             'name' => 'Updated Administrator',
@@ -36,6 +41,7 @@ class ProfileTest extends TestCase
         $this->assertSame('Updated Administrator', $user->name);
         $this->assertSame('updated@example.com', $user->email);
         $this->assertTrue(Hash::check('new-password', $user->password));
+        $this->assertFalse($user->must_change_password);
     }
 
     public function test_faculty_can_update_personal_but_not_employment_details(): void
@@ -70,6 +76,14 @@ class ProfileTest extends TestCase
             'suffix' => '',
             'email' => 'new.name@cvsu.edu.ph',
             'contact_no' => '+639171234567',
+            'highest_educational_attainment' => "Master's Degree",
+            'service_start_date' => '2024-06-01',
+            'employment_history' => [[
+                'employer' => 'Previous University',
+                'position' => 'Instructor',
+                'started_on' => '2020-06-01',
+                'ended_on' => '2024-05-01',
+            ]],
             'rate_amount' => 9999,
             'status' => 'inactive',
             'current_password' => '',
@@ -80,7 +94,43 @@ class ProfileTest extends TestCase
         $employee->refresh();
         $this->assertSame('New', $employee->first_name);
         $this->assertSame('+639171234567', $employee->contact_no);
+        $this->assertSame("Master's Degree", $employee->highest_educational_attainment);
+        $this->assertDatabaseHas('employment_histories', [
+            'employee_id' => $employee->id,
+            'employer' => 'Previous University',
+        ]);
         $this->assertEquals(250, $employee->rate_amount);
         $this->assertSame('active', $employee->status);
+    }
+
+    public function test_signed_verification_link_marks_email_as_verified(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $url = URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'user' => $user->id,
+            'hash' => sha1($user->email),
+        ]);
+
+        $this->get($url)->assertRedirect(route('login'));
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_verification_email_is_sent_through_google_apps_script(): void
+    {
+        config([
+            'services.google_mail.webhook_url' => 'https://script.google.com/test/exec',
+            'services.google_mail.webhook_secret' => 'test-secret',
+        ]);
+        Http::fake([
+            'https://script.google.com/*' => Http::response(['ok' => true]),
+        ]);
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->post(route('verification.send'))->assertSessionHas('success');
+
+        Http::assertSent(fn ($request) => $request['secret'] === 'test-secret'
+            && $request['to'] === $user->email
+            && str_contains($request['html'], 'Verify email address'));
     }
 }

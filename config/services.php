@@ -39,4 +39,9 @@ return [
         'api_key' => env('HARDWARE_API_KEY'),
     ],
 
+    'google_mail' => [
+        'webhook_url' => env('GOOGLE_MAIL_WEBHOOK_URL'),
+        'webhook_secret' => env('GOOGLE_MAIL_WEBHOOK_SECRET'),
+    ],
+
 ];

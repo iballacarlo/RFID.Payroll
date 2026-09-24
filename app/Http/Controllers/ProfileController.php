@@ -3,24 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\GoogleAppsScriptMailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ProfileController extends Controller
 {
     public function edit(Request $request)
     {
-        $user = $request->user()->load('employee.facultyRank');
+        $user = $request->user()->load(['employee.facultyRank', 'employee.employmentHistories']);
 
         return Inertia::render('Profile/Edit', [
             'profileUser' => $user,
         ]);
     }
 
-    public function update(Request $request)
+    public function update(Request $request, GoogleAppsScriptMailer $mailer)
     {
         /** @var User $user */
         $user = $request->user();
@@ -49,12 +51,28 @@ class ProfileController extends Controller
                     Rule::unique('employees', 'email')->ignore($employee->id),
                 ],
                 'contact_no' => ['nullable', 'regex:/^\+639\d{9}$/'],
+                'highest_educational_attainment' => ['nullable', Rule::in([
+                    "Bachelor's Degree",
+                    'Post-Baccalaureate Certificate or Diploma',
+                    "Master's Degree Units",
+                    "Master's Degree",
+                    'Doctorate Degree Units',
+                    'Doctorate Degree',
+                    'Postdoctoral Studies',
+                ])],
+                'service_start_date' => ['nullable', 'date', 'before_or_equal:today'],
+                'employment_history' => ['nullable', 'array', 'max:20'],
+                'employment_history.*.employer' => ['required', 'string', 'max:150'],
+                'employment_history.*.position' => ['required', 'string', 'max:150'],
+                'employment_history.*.started_on' => ['required', 'date'],
+                'employment_history.*.ended_on' => ['nullable', 'date'],
             ];
         }
 
         $data = $request->validate($rules);
+        $emailChanged = strtolower($data['email']) !== strtolower($user->email);
 
-        DB::transaction(function () use ($data, $user, $employee) {
+        DB::transaction(function () use ($data, $user, $employee, $emailChanged) {
             if ($employee) {
                 $employee->update([
                     'first_name' => $data['first_name'],
@@ -63,7 +81,19 @@ class ProfileController extends Controller
                     'suffix' => $data['suffix'] ?? null,
                     'email' => strtolower($data['email']),
                     'contact_no' => $data['contact_no'] ?? null,
+                    'highest_educational_attainment' => $data['highest_educational_attainment'] ?? null,
+                    'service_start_date' => $data['service_start_date'] ?? null,
                 ]);
+
+                $employee->employmentHistories()->delete();
+                foreach ($data['employment_history'] ?? [] as $history) {
+                    if (($history['ended_on'] ?? null) && $history['ended_on'] < $history['started_on']) {
+                        throw ValidationException::withMessages([
+                            'employment_history' => 'Employment end month must be after its start month.',
+                        ]);
+                    }
+                    $employee->employmentHistories()->create($history);
+                }
 
                 $user->name = implode(' ', array_filter([
                     $data['first_name'],
@@ -76,12 +106,20 @@ class ProfileController extends Controller
             }
 
             $user->email = strtolower($data['email']);
+            if ($emailChanged) {
+                $user->email_verified_at = null;
+            }
             if (! empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
+                $user->must_change_password = false;
             }
             $user->save();
         });
 
-        return redirect()->route('profile.edit')->with('success', 'Your profile has been updated.');
+        $verificationSent = $emailChanged ? $mailer->sendVerification($user) : null;
+
+        return redirect()->route('profile.edit')->with('success', $emailChanged
+            ? ($verificationSent ? 'Profile updated. Verify your new email using the link we sent.' : 'Profile updated, but the verification email could not be sent.')
+            : 'Your profile has been updated.');
     }
 }

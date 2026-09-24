@@ -139,7 +139,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
     ]);
     const updateEmploymentHistory = (index, field, value) => form.setData('employment_history', form.data.employment_history.map((history, historyIndex) => historyIndex === index ? { ...history, [field]: value } : history));
     const removeEmploymentHistory = (index) => form.setData('employment_history', form.data.employment_history.filter((_, historyIndex) => historyIndex !== index));
-    return <AppLayout title={employee.id ? 'Edit Faculty' : 'Add Faculty'} subtitle="Register faculty information and device identifiers.">
+    return <AppLayout title={employee.id ? 'Edit Faculty' : 'Add Faculty'} subtitle={isNew ? 'Set up the faculty employment record and initial login.' : 'Manage employment settings and attendance identifiers.'}>
         <form className="panel form-grid" onSubmit={submit}>
             <div className="form-section-title"><span>01</span><div><strong>Personal information</strong><small>Faculty identity and contact details</small></div></div>
             <div className="name-fields">
@@ -151,18 +151,20 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             <div className="personal-contact-fields">
                 <label><FieldLabel note="Generated system identifier for this faculty record.">Employee Number</FieldLabel><input value={form.data.employee_no} readOnly aria-readonly="true" /></label>
                 <label><FieldLabel required note="Use an active institutional address ending in @cvsu.edu.ph.">Email Address</FieldLabel><input type="email" value={form.data.email} autoComplete="email" placeholder="name@cvsu.edu.ph" pattern="[^@\s]+@cvsu\.edu\.ph" onChange={(e) => { emailEdited.current = true; form.setData('email', e.target.value); }} required />{form.errors.email && <small className="field-error">{form.errors.email}</small>}</label>
-                <label><FieldLabel note="Enter the 10-digit Philippine mobile number after +63.">Phone Number</FieldLabel><div className="phone-input"><span>+63</span><input type="tel" inputMode="numeric" autoComplete="tel-national" value={form.data.contact_no} maxLength="10" pattern="9[0-9]{9}" placeholder="9XX XXX XXXX" onChange={(e) => form.setData('contact_no', e.target.value.replace(/\D/g, '').slice(0, 10))} /></div>{form.errors.contact_no && <small className="field-error">{form.errors.contact_no}</small>}</label>
+                {!isNew && <label><FieldLabel note="Enter the 10-digit Philippine mobile number after +63.">Phone Number</FieldLabel><div className="phone-input"><span>+63</span><input type="tel" inputMode="numeric" autoComplete="tel-national" value={form.data.contact_no} maxLength="10" pattern="9[0-9]{9}" placeholder="9XX XXX XXXX" onChange={(e) => form.setData('contact_no', e.target.value.replace(/\D/g, '').slice(0, 10))} /></div>{form.errors.contact_no && <small className="field-error">{form.errors.contact_no}</small>}</label>}
             </div>
+            {isNew && <div className="form-note onboarding-note">A faculty login will be created automatically. The faculty member will complete their phone number, educational attainment, service start, employment history, and password in My Profile.</div>}
             <div className="form-section-title"><span>02</span><div><strong>Employment details</strong><small>Academic profile, rank, and contract</small></div></div>
             <div className="employment-fields">
-                <label><FieldLabel required note="Options are arranged from the lowest to highest completed attainment.">Highest Educational Attainment</FieldLabel><select value={form.data.highest_educational_attainment} onChange={(e) => form.setData('highest_educational_attainment', e.target.value)} required><option value="">Select attainment</option>{attainmentOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-                <label><FieldLabel required note={`Select the first month of CvSU service. Current duration: ${serviceDuration(form.data.service_start_date)}.`}>Service Start Month</FieldLabel><input type="month" placeholder="MM / YYYY" max={new Date().toISOString().slice(0, 7)} value={form.data.service_start_date} onChange={(e) => form.setData('service_start_date', e.target.value)} required /></label>
+                {!isNew && <label><FieldLabel required note="Options are arranged from the lowest to highest completed attainment.">Highest Educational Attainment</FieldLabel><select value={form.data.highest_educational_attainment} onChange={(e) => form.setData('highest_educational_attainment', e.target.value)} required><option value="">Select attainment</option>{attainmentOptions.map((option) => <option key={option}>{option}</option>)}</select></label>}
+                {!isNew && <label><FieldLabel required note={`Select the first month of CvSU service. Current duration: ${serviceDuration(form.data.service_start_date)}.`}>Service Start Month</FieldLabel><input type="month" placeholder="MM / YYYY" max={new Date().toISOString().slice(0, 7)} value={form.data.service_start_date} onChange={(e) => form.setData('service_start_date', e.target.value)} required /></label>}
                 <label><FieldLabel required note="Academic rank is stored separately from the employee's pay rate.">Rank</FieldLabel><select value={form.data.faculty_rank_id} onChange={(e) => form.setData('faculty_rank_id', e.target.value)} required><option value="">Select rank</option>{ranks.map((rank) => <option key={rank.id} value={rank.id}>{rank.name}</option>)}</select></label>
                 <label><FieldLabel required note="Hourly compensation used when payroll is generated.">Hourly Rate</FieldLabel><input type="number" min="0" max="999999.99" step="0.01" placeholder="0.00" value={form.data.rate_amount} onChange={(e) => form.setData('rate_amount', e.target.value)} required /></label>
                 <label><FieldLabel note="Inactive faculty cannot record attendance or be included in payroll.">Status</FieldLabel><select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
             </div>
             <fieldset className="contract-period"><legend>Contract Period</legend><label><FieldLabel note="First calendar day covered by the contract.">Start Date</FieldLabel><input type="date" placeholder="MM / DD / YYYY" value={form.data.contract_start || ''} onChange={(e) => form.setData('contract_start', e.target.value)} /></label><span>to</span><label><FieldLabel note="Last calendar day covered by the contract.">End Date</FieldLabel><input type="date" placeholder="MM / DD / YYYY" min={form.data.contract_start || undefined} value={form.data.contract_end || ''} onChange={(e) => form.setData('contract_end', e.target.value)} /></label></fieldset>
-            <div className="form-section-title"><span>03</span><div><strong>Employment history</strong><small>Previous teaching and professional experience</small></div></div>
+            {isNew && <div className="device-onboarding-preview" id="attendance-identifiers"><span><Radio size={20} /><Fingerprint size={20} /></span><div><strong>RFID and fingerprint registration</strong><small>After creating the faculty record, this page will continue directly to the hardware enrollment controls.</small></div></div>}
+            {!isNew && <><div className="form-section-title"><span>03</span><div><strong>Employment history</strong><small>Previous teaching and professional experience</small></div></div>
             <div className="employment-history-list">
                 {form.data.employment_history.map((history, index) => <div className="employment-history-row" key={index}>
                     <span className="history-icon"><BriefcaseBusiness size={18} /></span>
@@ -174,7 +176,8 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                 </div>)}
                 <button className="add-history-button" type="button" title="Add another previous employment record" onClick={addEmploymentHistory}><Plus size={16} />Add Employment</button>
                 {form.errors.employment_history && <small className="field-error">{form.errors.employment_history}</small>}
-            </div>
+            </div></>}
+            {!isNew && <>
             <div className="form-section-title" id="attendance-identifiers"><span>04</span><div><strong>Attendance identifiers</strong><small>Hardware credentials used for time records</small></div></div>
             {enrollment && <div className={`credential-enrollment-status is-${enrollment.status}`}>
                 {['starting', 'pending', 'processing'].includes(enrollment.status) ? <LoaderCircle className="spin" size={18} /> : <CircleCheck size={18} />}
@@ -190,6 +193,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                     {form.data.rfid_uid && <button className="credential-unlink" type="button" title="Remove the RFID card from this faculty record" onClick={() => unlinkCredential('rfid')} aria-label="Unlink RFID card"><Link2Off size={16} /></button>}
                 </div>
             </div>
+            </>}
             <div className="credential-row">
                 <div className="credential-heading"><span className="credential-icon"><Fingerprint size={19} /></span><span><strong>Fingerprint</strong><small>{form.data.fingerprint_code ? 'Registered' : 'Not registered'}</small></span></div>
                 <label><FieldLabel note="Template slot assigned by the AS608 sensor.">Template ID</FieldLabel><input ref={fingerprintInput} readOnly={!fingerprintEditing} placeholder="Example: FP-1" value={form.data.fingerprint_code} onChange={(e) => form.setData('fingerprint_code', e.target.value.trim().toUpperCase())} /></label>
@@ -199,7 +203,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                     {form.data.fingerprint_code && <button className="credential-unlink" type="button" title="Remove the fingerprint from this faculty record" onClick={() => unlinkCredential('fingerprint')} aria-label="Unlink fingerprint"><Link2Off size={16} /></button>}
                 </div>
             </div>
-            <div className="form-actions"><Link href="/employees">Cancel</Link><button type="submit" disabled={form.processing}>{form.processing ? 'Saving...' : 'Save Faculty'}</button></div>
+            <div className="form-actions"><Link href="/employees">Cancel</Link><button type="submit" disabled={form.processing}>{form.processing ? 'Saving...' : isNew ? 'Create & Continue to Device Registration' : 'Save Faculty'}</button></div>
         </form>
     </AppLayout>;
 }

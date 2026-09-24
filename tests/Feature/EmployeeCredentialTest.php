@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\FacultyRank;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
@@ -162,6 +163,35 @@ class EmployeeCredentialTest extends TestCase
             'started_on' => '2018-06-01 00:00:00',
             'ended_on' => '2020-05-01 00:00:00',
         ]);
+    }
+
+    public function test_admin_creating_faculty_also_creates_a_temporary_login(): void
+    {
+        $rank = FacultyRank::where('is_active', true)->firstOrFail();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->post(route('employees.store'), [
+            'first_name' => 'New',
+            'middle_name' => 'Faculty',
+            'last_name' => 'Member',
+            'email' => 'new.faculty@cvsu.edu.ph',
+            'faculty_rank_id' => $rank->id,
+            'rate_amount' => $rank->rate_amount,
+            'status' => 'active',
+            'employment_history' => [],
+        ]);
+
+        $employee = Employee::where('email', 'new.faculty@cvsu.edu.ph')->firstOrFail();
+        $response->assertRedirect(route('employees.edit', $employee).'#attendance-identifiers')
+            ->assertSessionHas('temporary_credentials');
+
+        $user = User::where('email', 'new.faculty@cvsu.edu.ph')->firstOrFail();
+        $credentials = session('temporary_credentials');
+        $this->assertSame('faculty', $user->role);
+        $this->assertTrue($user->must_change_password);
+        $this->assertNotNull($user->employee_id);
+        $this->assertSame(14, strlen($credentials['password']));
+        $this->assertTrue(Hash::check($credentials['password'], $user->password));
     }
 
     private function employee(string $employeeNumber = 'COS-9001'): Employee
