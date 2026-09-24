@@ -3669,7 +3669,6 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 .profile-employment-history { display: grid; gap: 12px; grid-column: 1 / -1; }
 .profile-history-row { align-items: end; border-bottom: 1px solid #d4dfd8; display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(2, minmax(130px, 0.65fr)) 44px; padding-bottom: 14px; }
 .profile-history-row .history-delete { height: 44px; width: 44px; }
-.onboarding-note { grid-column: 1 / -1; }
 .password-change-reminder,
 .email-verification-reminder,
 .temporary-credentials { align-items: center; display: flex; gap: 13px; margin: 0 auto 20px; max-width: 1480px; padding: 13px 15px; width: 100%; }
@@ -3687,10 +3686,6 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 .temporary-credentials { background: #e7f4eb; border: 1px solid #a8cfb7; border-left: 4px solid var(--cvsu-green); color: #174d35; }
 .temporary-credentials code { background: #fff; border: 1px solid #b8d3c3; color: #073d28; font-size: 13px; padding: 3px 6px; }
 .temporary-credentials button { align-items: center; display: inline-flex; gap: 7px; white-space: nowrap; }
-.device-onboarding-preview { align-items: center; background: #edf5f0; border: 1px solid #b8d3c3; display: flex; gap: 14px; grid-column: 1 / -1; padding: 16px; }
-.device-onboarding-preview > span { color: var(--cvsu-green); display: flex; gap: 7px; }
-.device-onboarding-preview > div { display: grid; gap: 3px; }
-.device-onboarding-preview small { color: #5c7166; }
 .faculty-identity { display: grid; gap: 3px; min-width: 180px; }
 .faculty-identity small { color: #607168; font-size: 10px; }
 .email-status { align-items: center; display: inline-flex; font-size: 9px; font-weight: 800; gap: 4px; text-transform: uppercase; width: fit-content; }

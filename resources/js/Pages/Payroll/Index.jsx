@@ -100,7 +100,6 @@ export default function PayrollIndex({ periods, records }) {
                         {(form.errors.start_date || form.errors.end_date) && (
                             <div className="form-note">{form.errors.start_date || form.errors.end_date}</div>
                         )}
-                        <div className="form-note">Cutoffs are 1-15 paid on the 25th, and 16-end of month paid on the 10th of the next month.</div>
                         <button type="submit" disabled={form.processing}>Create Period</button>
                     </form>
 

@@ -10,7 +10,6 @@ function RankRow({ rank }) {
 }
 export default function RanksIndex({ ranks }) {
     return <AppLayout title="Ranks" subtitle="Set one hourly rate per rank. Faculty with the same rank use the same rate.">
-        <div className="panel form-note">The official rank list is fixed. Rank names and salary grades cannot be added or removed; only the payroll hourly rate can be updated.</div>
         <div className="panel"><div className="panel-heading"><h2>Official Ranks</h2></div><div className="table-wrap"><table><thead><tr><th>Rank</th><th>Salary Grade</th><th>Monthly Reference</th><th>Hourly Rate</th><th>Faculty Assigned</th></tr></thead><tbody>{ranks.map((rank) => <RankRow key={rank.id} rank={rank} />)}{ranks.length === 0 && <tr><td colSpan="5" className="empty-row">No faculty ranks found.</td></tr>}</tbody></table></div></div>
     </AppLayout>;
 }
