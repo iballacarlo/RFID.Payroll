@@ -72,7 +72,7 @@ class EmployeeController extends Controller
     public function create()
     {
         return Inertia::render('Employees/Form', [
-            'employee' => new Employee(),
+            'employee' => new Employee,
             'ranks' => $this->standardRanks(),
             'nextEmployeeNumber' => $this->nextEmployeeNumber(),
         ]);
@@ -80,12 +80,15 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validated($request, null, true);
-        $data['employee_no'] = $this->nextEmployeeNumber();
+        DB::transaction(function () use ($request) {
+            $data = $this->validated($request, null, true);
+            $data['employee_no'] = $this->nextEmployeeNumber();
 
-        $employee = Employee::create($data);
-        $this->saveDevices($request, $employee);
-        $this->saveSchedules($request, $employee);
+            $employee = Employee::create($data);
+            $this->saveDevices($request, $employee);
+            $this->saveSchedules($request, $employee);
+
+        });
 
         return redirect()->route('employees.index')->with('success', 'Faculty member added.');
     }
@@ -103,9 +106,11 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
-        $employee->update($this->validated($request, $employee->id));
-        $this->saveDevices($request, $employee);
-        $this->saveSchedules($request, $employee);
+        DB::transaction(function () use ($request, $employee) {
+            $employee->update($this->validated($request, $employee->id));
+            $this->saveDevices($request, $employee);
+            $this->saveSchedules($request, $employee);
+        });
 
         return redirect()->route('employees.index')->with('success', 'Faculty record updated.');
     }
@@ -170,7 +175,7 @@ class EmployeeController extends Controller
 
     private function saveDevices(Request $request, Employee $employee): void
     {
-        $request->validate([
+        $deviceData = $request->validate([
             'rfid_uid' => [
                 'nullable',
                 'max:100',
@@ -181,27 +186,35 @@ class EmployeeController extends Controller
                 'max:100',
                 Rule::unique('fingerprint_templates', 'fingerprint_code')->ignore(optional($employee->fingerprintTemplates()->first())->id),
             ],
+            'finger_label' => ['nullable', 'string', 'max:50'],
+            'rfid_reregister' => ['sometimes', 'boolean'],
+            'fingerprint_reregister' => ['sometimes', 'boolean'],
         ]);
 
         if ($request->filled('rfid_uid')) {
-            $employee->rfidCards()->updateOrCreate(
-                ['employee_id' => $employee->id],
-                ['rfid_uid' => $request->rfid_uid, 'status' => 'active', 'registered_at' => Carbon::now()]
-            );
+            $rfid = $employee->rfidCards()->firstOrNew(['employee_id' => $employee->id]);
+            $changed = $rfid->rfid_uid !== $deviceData['rfid_uid'];
+            $rfid->fill(['rfid_uid' => $deviceData['rfid_uid'], 'status' => 'active']);
+            if (! $rfid->exists || $changed || ($deviceData['rfid_reregister'] ?? false)) {
+                $rfid->registered_at = Carbon::now();
+            }
+            $rfid->save();
         } else {
             $employee->rfidCards()->delete();
         }
 
         if ($request->filled('fingerprint_code')) {
-            $employee->fingerprintTemplates()->updateOrCreate(
-                ['employee_id' => $employee->id],
-                [
-                    'fingerprint_code' => $request->fingerprint_code,
-                    'finger_label' => $request->finger_label ?: 'Primary finger',
-                    'status' => 'active',
-                    'registered_at' => Carbon::now(),
-                ]
-            );
+            $fingerprint = $employee->fingerprintTemplates()->firstOrNew(['employee_id' => $employee->id]);
+            $changed = $fingerprint->fingerprint_code !== $deviceData['fingerprint_code'];
+            $fingerprint->fill([
+                'fingerprint_code' => $deviceData['fingerprint_code'],
+                'finger_label' => ($deviceData['finger_label'] ?? null) ?: 'Primary finger',
+                'status' => 'active',
+            ]);
+            if (! $fingerprint->exists || $changed || ($deviceData['fingerprint_reregister'] ?? false)) {
+                $fingerprint->registered_at = Carbon::now();
+            }
+            $fingerprint->save();
         } else {
             $employee->fingerprintTemplates()->delete();
         }
@@ -252,6 +265,7 @@ class EmployeeController extends Controller
             if ($start === null) {
                 $start = $slot;
                 $previous = $slot;
+
                 continue;
             }
 

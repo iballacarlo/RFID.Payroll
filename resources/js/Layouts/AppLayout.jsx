@@ -1,14 +1,14 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, LayoutDashboard, LogOut, Settings2, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, LayoutDashboard, LogOut, Settings2, ShieldCheck, Wallet } from 'lucide-react';
 import { dateLabel, fullName } from '../lib/format';
 
 const navigation = [
-    { label: 'Dashboard', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
-    { label: 'Faculty', href: '/employees', icon: GraduationCap, tone: 'nav-faculty', roles: ['admin'], active: (url) => url.startsWith('/employees') },
-    { label: 'Ranks', href: '/faculty-ranks', icon: ChartNoAxesCombined, tone: 'nav-ranks', roles: ['admin'], active: (url) => url.startsWith('/faculty-ranks') },
-    { label: 'Attendance', href: '/attendance', icon: Clock3, tone: 'nav-attendance', active: (url) => url.startsWith('/attendance') },
-    { label: 'Payroll', href: '/payroll', icon: Wallet, tone: 'nav-payroll', active: (url) => url.startsWith('/payroll') },
-    { label: 'Settings', href: '/settings/accounts', icon: Settings2, tone: 'nav-settings', roles: ['admin'], active: (url) => url.startsWith('/settings') },
+    { label: 'Dashboard', code: 'OV', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
+    { label: 'Faculty', code: 'FC', href: '/employees', icon: GraduationCap, tone: 'nav-faculty', roles: ['admin'], active: (url) => url.startsWith('/employees') },
+    { label: 'Ranks', code: 'RK', href: '/faculty-ranks', icon: ChartNoAxesCombined, tone: 'nav-ranks', roles: ['admin'], active: (url) => url.startsWith('/faculty-ranks') },
+    { label: 'Attendance', code: 'AT', href: '/attendance', icon: Clock3, tone: 'nav-attendance', active: (url) => url.startsWith('/attendance') },
+    { label: 'Payroll', code: 'PY', href: '/payroll', icon: Wallet, tone: 'nav-payroll', active: (url) => url.startsWith('/payroll') },
+    { label: 'Settings', code: 'ST', href: '/settings/accounts', icon: Settings2, tone: 'nav-settings', roles: ['admin'], active: (url) => url.startsWith('/settings') },
 ];
 
 export default function AppLayout({ title, subtitle, children }) {
@@ -35,16 +35,25 @@ export default function AppLayout({ title, subtitle, children }) {
                         <img src="/images/cvsu-logo.png" alt="Cavite State University logo" />
                         <img src="/images/dcs-logo.png" alt="Department of Computer Studies logo" />
                     </div>
-                    <div>
-                        <strong>Payroll System</strong>
-                        <small>DCS Attendance System</small>
+                    <div className="brand-copy">
+                        <small>Cavite State University</small>
+                        <strong>Imus Campus</strong>
+                        <span>DCS Payroll</span>
                     </div>
                 </div>
+                <div className="sidebar-section-label">Operations</div>
                 <nav aria-label="Main navigation">
                     {navigation.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => (
-                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}><item.icon size={18} strokeWidth={1.8} />{item.label}</Link>
+                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
+                            <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
+                            <span className="nav-copy">{item.label}<small>{item.code}</small></span>
+                        </Link>
                     ))}
                 </nav>
+                <div className="sidebar-account">
+                    <ShieldCheck size={16} />
+                    <span><small>Signed in as</small><strong>{user.employee ? fullName(user.employee) : user.name}</strong></span>
+                </div>
                 <button className="logout-button" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
             </aside>
             <main className={`main module-${module}`}>
