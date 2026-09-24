@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'hardware' => [
+        'api_key' => env('HARDWARE_API_KEY'),
+    ],
+
 ];

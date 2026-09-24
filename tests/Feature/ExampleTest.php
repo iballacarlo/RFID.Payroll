@@ -16,4 +16,11 @@ class ExampleTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_forwarded_https_requests_generate_https_redirects(): void
+    {
+        $response = $this->withHeader('X-Forwarded-Proto', 'https')->get('/');
+
+        $this->assertStringStartsWith('https://', $response->headers->get('Location'));
+    }
 }

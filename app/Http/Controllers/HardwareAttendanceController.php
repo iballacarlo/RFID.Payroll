@@ -16,7 +16,13 @@ class HardwareAttendanceController extends Controller
 
     public function tap(Request $request)
     {
-        if ($request->input('api_key') !== env('HARDWARE_API_KEY')) {
+        $expectedApiKey = config('services.hardware.api_key');
+        $providedApiKey = $request->string('api_key')->toString();
+
+        if (! is_string($expectedApiKey)
+            || $expectedApiKey === ''
+            || $providedApiKey === ''
+            || ! hash_equals($expectedApiKey, $providedApiKey)) {
             return response()->json([
                 'ok' => false,
                 'message' => 'Invalid hardware API key.',
