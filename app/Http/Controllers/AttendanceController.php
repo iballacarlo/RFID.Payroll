@@ -8,7 +8,6 @@ use App\Models\FingerprintTemplate;
 use App\Models\RfidCard;
 use App\Services\AttendanceCalculator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
@@ -16,17 +15,22 @@ class AttendanceController extends Controller
 {
     private const TIME_OUT_COOLDOWN_MINUTES = 5;
 
-    public function index()
+    public function index(Request $request)
     {
-        $query = AttendanceLog::with('employee')->latest();
+        $user = $request->user();
+        $isFaculty = $user->role === 'faculty';
+        $query = AttendanceLog::with('employee')
+            ->orderByDesc('attendance_date')
+            ->orderByDesc('time_in');
 
-        if (Auth::user()->role === 'faculty') {
-            $query->where('employee_id', Auth::user()->employee_id);
+        if ($isFaculty) {
+            $query->where('employee_id', $user->employee_id);
         }
 
         return Inertia::render('Attendance/Index', [
-            'employees' => Employee::where('status', 'active')->orderBy('last_name')->get(),
+            'employees' => $isFaculty ? [] : Employee::where('status', 'active')->orderBy('last_name')->get(),
             'logs' => $query->paginate(15),
+            'dtr' => $isFaculty ? $this->facultyDtr($user->employee_id) : null,
         ]);
     }
 
@@ -131,6 +135,7 @@ class AttendanceController extends Controller
 
             if (! $log->wasRecentlyCreated) {
                 $skipped++;
+
                 continue;
             }
 
@@ -183,5 +188,65 @@ class AttendanceController extends Controller
     private function hasScheduleOnDate(Employee $employee, string $date): bool
     {
         return AttendanceCalculator::hasSchedule($employee, $date);
+    }
+
+    private function facultyDtr(?int $employeeId): ?array
+    {
+        if (! $employeeId) {
+            return null;
+        }
+
+        $now = Carbon::now('Asia/Manila');
+        $employee = Employee::with(['schedules', 'scheduleBreaks'])->find($employeeId);
+
+        if (! $employee) {
+            return null;
+        }
+
+        $periodStart = $now->day <= 15 ? $now->copy()->startOfMonth() : $now->copy()->day(16);
+        $periodEnd = $now->day <= 15 ? $now->copy()->day(15) : $now->copy()->endOfMonth();
+        $elapsedEnd = $now->lessThan($periodEnd) ? $now->copy() : $periodEnd->copy();
+        $periodLogs = AttendanceLog::where('employee_id', $employee->id)
+            ->whereBetween('attendance_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->get();
+        $daysPresent = $periodLogs->filter(fn ($log) => (float) $log->total_hours > 0 || $log->time_in)->count();
+        $scheduledDays = 0;
+
+        for ($date = $periodStart->copy(); $date->lte($elapsedEnd); $date->addDay()) {
+            if (AttendanceCalculator::scheduledHoursForDay($employee, $date) > 0) {
+                $scheduledDays++;
+            }
+        }
+
+        $todayLog = $periodLogs->firstWhere('attendance_date', $now->toDateString());
+        $todaySchedules = $employee->schedules
+            ->where('day_of_week', $now->dayOfWeek)
+            ->sortBy('start_time')
+            ->values()
+            ->map(fn ($schedule) => [
+                'id' => $schedule->id,
+                'type' => $schedule->schedule_type,
+                'start_time' => $schedule->start_time,
+                'end_time' => $schedule->end_time,
+            ]);
+
+        return [
+            'server_time' => $now->toIso8601String(),
+            'date' => $now->toDateString(),
+            'cutoff' => [
+                'start_date' => $periodStart->toDateString(),
+                'end_date' => $periodEnd->toDateString(),
+            ],
+            'today_log' => $todayLog,
+            'today_schedules' => $todaySchedules,
+            'summary' => [
+                'scheduled_days' => $scheduledDays,
+                'days_present' => $daysPresent,
+                'absent_days' => max(0, $scheduledDays - $daysPresent),
+                'total_hours' => round((float) $periodLogs->sum('total_hours'), 2),
+                'late_minutes' => (int) $periodLogs->sum('late_minutes'),
+                'undertime_minutes' => (int) $periodLogs->sum('undertime_minutes'),
+            ],
+        ];
     }
 }
