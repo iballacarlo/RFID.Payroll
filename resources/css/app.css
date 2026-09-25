@@ -4035,3 +4035,27 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     .dtr-state.is-active svg,
     .dtr-clock small.is-refreshing svg { animation: none; }
 }
+
+.faculty-temporary-credentials {
+    align-items: center;
+    background: #fff8df;
+    border: 1px solid #d9b857;
+    border-left: 5px solid var(--cvsu-gold);
+    color: #513f11;
+    display: flex;
+    gap: 14px;
+    grid-column: 1 / -1;
+    padding: 15px 17px;
+}
+.faculty-temporary-credentials > svg { flex: 0 0 auto; }
+.faculty-temporary-credentials > div { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.faculty-temporary-credentials strong { font-size: 13px; }
+.faculty-temporary-credentials span,
+.faculty-temporary-credentials small { font-size: 11px; overflow-wrap: anywhere; }
+.faculty-temporary-credentials code { background: #fff; border: 1px solid #d8c47e; color: #1f3e30; font-size: 13px; padding: 3px 6px; }
+.faculty-temporary-credentials button { align-items: center; display: inline-flex; flex: 0 0 auto; gap: 7px; white-space: nowrap; }
+
+@media (max-width: 650px) {
+    .faculty-temporary-credentials { align-items: flex-start; flex-wrap: wrap; }
+    .faculty-temporary-credentials button { margin-left: 35px; }
+}

@@ -35,12 +35,11 @@ unsigned long lastWiFiAttempt = 0;
 unsigned long fingerReleaseStarted = 0;
 
 const unsigned long WIFI_RETRY_MS = 10000;
-const unsigned long ENROLLMENT_POLL_MS = 30000;
+const unsigned long ENROLLMENT_POLL_MS = 10000;
 const unsigned long FINGER_RELEASE_TIMEOUT_MS = 5000;
 
-// Keep this false during normal attendance operation. Set it to true only
-// while registering RFID cards or fingerprints from the web application.
-const bool ENABLE_REMOTE_ENROLLMENT = false;
+// Keep enrollment connected so requests from the faculty form reach the device.
+const bool ENABLE_REMOTE_ENROLLMENT = true;
 
 void printLine(int row, String text) {
   text = text.substring(0, 16);
@@ -276,8 +275,8 @@ void checkEnrollment() {
   HTTPClient http;
   String url = String(API_BASE_URL) + "/enrollment";
   if (!http.begin(secureClient, url)) return;
-  http.setConnectTimeout(3000);
-  http.setTimeout(4000);
+  http.setConnectTimeout(1500);
+  http.setTimeout(2500);
   addHardwareHeaders(http);
   int code = http.GET();
   String response = http.getString();

@@ -206,14 +206,19 @@ class EmployeeController extends Controller
                 'Postdoctoral Studies',
             ])],
             'service_start_date' => [$isCreating ? 'nullable' : 'required', 'date', 'before_or_equal:today'],
-            'faculty_rank_id' => ['required', 'exists:faculty_ranks,id'],
-            'rate_amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'faculty_rank_id' => [
+                'required',
+                Rule::exists('faculty_ranks', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'rate_amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'contract_start' => ['nullable', 'required_with:contract_end', 'date'],
             'contract_end' => ['nullable', 'required_with:contract_start', 'date', 'after_or_equal:contract_start'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
+        $rank = FacultyRank::where('is_active', true)->findOrFail($data['faculty_rank_id']);
         $data['rate_type'] = 'hourly';
+        $data['rate_amount'] = $rank->rate_amount;
         $data['position'] = 'COS Faculty Member';
         $data['department'] = 'Department of Computer Studies';
         $data['employment_type'] = 'Contract of Service';

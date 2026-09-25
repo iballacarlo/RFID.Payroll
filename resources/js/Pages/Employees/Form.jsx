@@ -1,6 +1,6 @@
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { BriefcaseBusiness, CircleCheck, CircleHelp, Fingerprint, Link2Off, LoaderCircle, Plus, Radio, RefreshCw, Trash2, X } from 'lucide-react';
+import { BriefcaseBusiness, Check, CircleCheck, CircleHelp, Copy, Fingerprint, KeyRound, Link2Off, LoaderCircle, Plus, Radio, RefreshCw, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 
@@ -15,7 +15,7 @@ const attainmentOptions = [
 ];
 
 function FieldLabel({ children, note, required = false }) {
-    return <span className="field-label"><span>{children}{required && <b aria-hidden="true"> *</b>}</span>{note && <span className="field-help" tabIndex="0" aria-label={note} data-tooltip={note}><CircleHelp size={13} /></span>}</span>;
+    return <span className="field-label"><span>{children}{required && <b aria-hidden="true"> *</b>}</span>{note && <span className="field-help" aria-label={note} data-tooltip={note}><CircleHelp size={13} /></span>}</span>;
 }
 
 function suggestedEmail(firstName, lastName) {
@@ -49,14 +49,14 @@ function serviceDuration(startMonth) {
 }
 
 export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
+    const { flash } = usePage().props;
     const isNew = !employee.id;
     const emailEdited = useRef(Boolean(employee.email));
     const rfidInput = useRef(null);
     const fingerprintInput = useRef(null);
-    const [rfidEditing, setRfidEditing] = useState(isNew);
-    const [fingerprintEditing, setFingerprintEditing] = useState(isNew);
     const [enrollment, setEnrollment] = useState(null);
     const [enrollmentError, setEnrollmentError] = useState('');
+    const [credentialsCopied, setCredentialsCopied] = useState(false);
     const form = useForm({
         employee_no: employee.employee_no || nextEmployeeNumber || '', first_name: employee.first_name || '', middle_name: employee.middle_name || '', last_name: employee.last_name || '', suffix: employee.suffix || '', email: employee.email || '', contact_no: localPhoneNumber(employee.contact_no), highest_educational_attainment: employee.highest_educational_attainment || '', service_start_date: employee.service_start_date?.slice(0, 7) || '', faculty_rank_id: employee.faculty_rank_id || '', rate_amount: employee.rate_amount ?? '', status: employee.status || 'active', contract_start: employee.contract_start || '', contract_end: employee.contract_end || '', employment_history: (employee.employment_histories || []).map((history) => ({ ...history, started_on: history.started_on?.slice(0, 7) || '', ended_on: history.ended_on?.slice(0, 7) || '' })), rfid_uid: employee.rfid_cards?.[0]?.rfid_uid || '', fingerprint_code: employee.fingerprint_templates?.[0]?.fingerprint_code || '', finger_label: employee.fingerprint_templates?.[0]?.finger_label || '', rfid_reregister: false, fingerprint_reregister: false,
     });
@@ -89,10 +89,8 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                 if (data.status === 'completed') {
                     if (data.method === 'rfid') {
                         form.setData('rfid_uid', data.identifier);
-                        setRfidEditing(false);
                     } else {
                         form.setData('fingerprint_code', data.identifier);
-                        setFingerprintEditing(false);
                     }
                 }
             } catch (error) {
@@ -127,11 +125,17 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
     const unlinkCredential = (type) => {
         if (type === 'rfid') {
             form.setData({ ...form.data, rfid_uid: '', rfid_reregister: true });
-            setRfidEditing(true);
         } else {
             form.setData({ ...form.data, fingerprint_code: '', finger_label: '', fingerprint_reregister: true });
-            setFingerprintEditing(true);
         }
+    };
+    const selectRank = (rankId) => {
+        const rank = ranks.find((item) => String(item.id) === String(rankId));
+        form.setData({
+            ...form.data,
+            faculty_rank_id: rankId,
+            rate_amount: rank ? Number(rank.rate_amount || 0).toFixed(2) : '',
+        });
     };
     const addEmploymentHistory = () => form.setData('employment_history', [
         ...form.data.employment_history,
@@ -157,8 +161,8 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             <div className="employment-fields">
                 {!isNew && <label><FieldLabel required note="Options are arranged from the lowest to highest completed attainment.">Highest Educational Attainment</FieldLabel><select value={form.data.highest_educational_attainment} onChange={(e) => form.setData('highest_educational_attainment', e.target.value)} required><option value="">Select attainment</option>{attainmentOptions.map((option) => <option key={option}>{option}</option>)}</select></label>}
                 {!isNew && <label><FieldLabel required note={`Select the first month of CvSU service. Current duration: ${serviceDuration(form.data.service_start_date)}.`}>Service Start Month</FieldLabel><input type="month" placeholder="MM / YYYY" max={new Date().toISOString().slice(0, 7)} value={form.data.service_start_date} onChange={(e) => form.setData('service_start_date', e.target.value)} required /></label>}
-                <label><FieldLabel required note="Academic rank is stored separately from the employee's pay rate.">Rank</FieldLabel><select value={form.data.faculty_rank_id} onChange={(e) => form.setData('faculty_rank_id', e.target.value)} required><option value="">Select rank</option>{ranks.map((rank) => <option key={rank.id} value={rank.id}>{rank.name}</option>)}</select></label>
-                <label><FieldLabel required note="Hourly compensation used when payroll is generated.">Hourly Rate</FieldLabel><input type="number" min="0" max="999999.99" step="0.01" placeholder="0.00" value={form.data.rate_amount} onChange={(e) => form.setData('rate_amount', e.target.value)} required /></label>
+                <label><FieldLabel required note="Selecting a rank automatically applies its official hourly rate.">Rank</FieldLabel><select value={form.data.faculty_rank_id} onChange={(e) => selectRank(e.target.value)} required><option value="">Select rank</option>{ranks.map((rank) => <option key={rank.id} value={rank.id}>{rank.name}</option>)}</select></label>
+                <label><FieldLabel required note="Automatically based on the selected rank and maintained in the Ranks page.">Hourly Rate</FieldLabel><input type="number" min="0" max="999999.99" step="0.01" placeholder="0.00" value={form.data.rate_amount} readOnly aria-readonly="true" required /></label>
                 <label><FieldLabel note="Inactive faculty cannot record attendance or be included in payroll.">Status</FieldLabel><select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
             </div>
             <fieldset className="contract-period"><legend>Contract Period</legend><label><FieldLabel note="First calendar day covered by the contract.">Start Date</FieldLabel><input type="date" placeholder="MM / DD / YYYY" value={form.data.contract_start || ''} onChange={(e) => form.setData('contract_start', e.target.value)} /></label><span>to</span><label><FieldLabel note="Last calendar day covered by the contract.">End Date</FieldLabel><input type="date" placeholder="MM / DD / YYYY" min={form.data.contract_start || undefined} value={form.data.contract_end || ''} onChange={(e) => form.setData('contract_end', e.target.value)} /></label></fieldset>
@@ -176,6 +180,11 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
                 {form.errors.employment_history && <small className="field-error">{form.errors.employment_history}</small>}
             </div></>}
             <div className="form-section-title" id="attendance-identifiers"><span>04</span><div><strong>Attendance identifiers</strong><small>Hardware credentials used for time records</small></div></div>
+            {flash?.temporaryCredentials && <section className="faculty-temporary-credentials" role="status">
+                <KeyRound size={21} />
+                <div><strong>Temporary faculty login</strong><span>Email: <b>{flash.temporaryCredentials.email}</b></span><span>Temporary password: <code>{flash.temporaryCredentials.password}</code></span><small>This password is shown only once. Give it securely to the faculty member.</small></div>
+                <button type="button" onClick={async () => { await navigator.clipboard.writeText(`Email: ${flash.temporaryCredentials.email}\nTemporary password: ${flash.temporaryCredentials.password}`); setCredentialsCopied(true); }}>{credentialsCopied ? <Check size={17} /> : <Copy size={17} />}{credentialsCopied ? 'Copied' : 'Copy login'}</button>
+            </section>}
             {enrollment && <div className={`credential-enrollment-status is-${enrollment.status}`}>
                 {['starting', 'pending', 'processing'].includes(enrollment.status) ? <LoaderCircle className="spin" size={18} /> : <CircleCheck size={18} />}
                 <span><strong>{enrollment.status === 'completed' ? 'Registration complete' : enrollment.status === 'failed' ? 'Registration failed' : enrollment.status === 'expired' ? 'Registration expired' : enrollment.status === 'cancelled' ? 'Registration cancelled' : 'Waiting for attendance device'}</strong><small>{enrollment.message || (enrollment.method === 'rfid' ? 'Tap the RFID card on the RC522.' : 'Follow the fingerprint scanner prompts.')}</small></span>
@@ -184,7 +193,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             {enrollmentError && <div className="credential-enrollment-error">{enrollmentError}</div>}
             <div className="credential-row">
                 <div className="credential-heading"><span className="credential-icon"><Radio size={19} /></span><span><strong>RFID card</strong><small>{form.data.rfid_uid ? 'Registered' : 'Not registered'}</small></span></div>
-                <label><FieldLabel note="Unique identifier read from the faculty member's RFID card.">Card UID</FieldLabel><input ref={rfidInput} value={form.data.rfid_uid} readOnly={!rfidEditing} placeholder="Scan or enter card UID" onChange={(e) => form.setData('rfid_uid', e.target.value.trim().toUpperCase())} /></label>
+                <label><FieldLabel note="This value is supplied by the RC522 after hardware registration.">Card UID</FieldLabel><input ref={rfidInput} value={form.data.rfid_uid} readOnly aria-readonly="true" placeholder="Register using the attendance device" /></label>
                 <div className="credential-actions">
                     <button className="credential-action" type="button" title="Start RFID registration on the attendance device" disabled={isNew || ['starting', 'pending', 'processing'].includes(enrollment?.status)} onClick={() => startHardwareRegistration('rfid')}>{form.data.rfid_uid ? <RefreshCw size={16} /> : <Radio size={16} />}{isNew ? 'Save first' : form.data.rfid_uid ? 'Re-register' : 'Register'}</button>
                     {form.data.rfid_uid && <button className="credential-unlink" type="button" title="Remove the RFID card from this faculty record" onClick={() => unlinkCredential('rfid')} aria-label="Unlink RFID card"><Link2Off size={16} /></button>}
@@ -192,10 +201,10 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             </div>
             <div className="credential-row">
                 <div className="credential-heading"><span className="credential-icon"><Fingerprint size={19} /></span><span><strong>Fingerprint</strong><small>{form.data.fingerprint_code ? 'Registered' : 'Not registered'}</small></span></div>
-                <label><FieldLabel note="Template slot assigned by the AS608 sensor.">Template ID</FieldLabel><input ref={fingerprintInput} readOnly={!fingerprintEditing} placeholder="Example: FP-1" value={form.data.fingerprint_code} onChange={(e) => form.setData('fingerprint_code', e.target.value.trim().toUpperCase())} /></label>
-                <label><FieldLabel note="Identifies which finger was enrolled on the sensor.">Finger</FieldLabel><select disabled={!fingerprintEditing} value={form.data.finger_label} onChange={(e) => form.setData('finger_label', e.target.value)}><option value="">Select finger</option><option>Right thumb</option><option>Right index</option><option>Right middle</option><option>Left thumb</option><option>Left index</option><option>Left middle</option></select></label>
+                <label><FieldLabel note="This template slot is assigned automatically by the AS608 sensor.">Template ID</FieldLabel><input ref={fingerprintInput} readOnly aria-readonly="true" placeholder="Register using the attendance device" value={form.data.fingerprint_code} /></label>
+                <label><FieldLabel note="Select the finger before starting registration on the AS608 sensor.">Finger</FieldLabel><select disabled={['starting', 'pending', 'processing'].includes(enrollment?.status)} value={form.data.finger_label} onChange={(e) => form.setData('finger_label', e.target.value)}><option value="">Select finger</option><option>Right thumb</option><option>Right index</option><option>Right middle</option><option>Left thumb</option><option>Left index</option><option>Left middle</option></select></label>
                 <div className="credential-actions">
-                    <button className="credential-action" type="button" title="Start fingerprint enrollment on the AS608 sensor" disabled={isNew || ['starting', 'pending', 'processing'].includes(enrollment?.status)} onClick={() => startHardwareRegistration('fingerprint')}>{form.data.fingerprint_code ? <RefreshCw size={16} /> : <Fingerprint size={16} />}{isNew ? 'Save first' : form.data.fingerprint_code ? 'Re-register' : 'Register'}</button>
+                    <button className="credential-action" type="button" title="Start fingerprint enrollment on the AS608 sensor" disabled={isNew || !form.data.finger_label || ['starting', 'pending', 'processing'].includes(enrollment?.status)} onClick={() => startHardwareRegistration('fingerprint')}>{form.data.fingerprint_code ? <RefreshCw size={16} /> : <Fingerprint size={16} />}{isNew ? 'Save first' : form.data.fingerprint_code ? 'Re-register' : 'Register'}</button>
                     {form.data.fingerprint_code && <button className="credential-unlink" type="button" title="Remove the fingerprint from this faculty record" onClick={() => unlinkCredential('fingerprint')} aria-label="Unlink fingerprint"><Link2Off size={16} /></button>}
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChartNoAxesCombined, Check, Clock3, Copy, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, PanelLeftClose, PanelLeftOpen, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, PanelLeftClose, PanelLeftOpen, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { dateLabel, fullName } from '../lib/format';
 
@@ -19,7 +19,6 @@ export default function AppLayout({ title, subtitle, children }) {
     const { url } = page;
     const user = auth.user;
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [credentialsCopied, setCredentialsCopied] = useState(false);
     useEffect(() => {
         setSidebarCollapsed(window.localStorage.getItem('sidebar-collapsed') === 'true');
     }, []);
@@ -88,7 +87,6 @@ export default function AppLayout({ title, subtitle, children }) {
                 {user.role === 'faculty' && !user.email_verified && <section className="email-verification-reminder" role="status"><MailWarning size={20} /><div><strong>Verify your email address</strong><span>Open the verification link sent to {user.email}. This confirms that the address belongs to you.</span></div><button type="button" onClick={() => router.post('/email/verification-notification', {}, { preserveScroll: true })}>Resend link</button></section>}
                 {flash?.success && <div className="alert success">{flash.success}</div>}
                 {flash?.error && <div className="alert error">{flash.error}</div>}
-                {flash?.temporaryCredentials && <section className="temporary-credentials" role="status"><KeyRound size={20} /><div><strong>Temporary faculty login</strong><span>Email: <b>{flash.temporaryCredentials.email}</b></span><span>Password: <code>{flash.temporaryCredentials.password}</code></span><small>This password is shown only once. Give it securely to the faculty member.</small></div><button type="button" onClick={async () => { await navigator.clipboard.writeText(`Email: ${flash.temporaryCredentials.email}\nTemporary password: ${flash.temporaryCredentials.password}`); setCredentialsCopied(true); }}>{credentialsCopied ? <Check size={17} /> : <Copy size={17} />}{credentialsCopied ? 'Copied' : 'Copy'}</button></section>}
                 {Object.keys(errors || {}).length > 0 && <div className="alert error">{Object.values(errors)[0]}</div>}
                 {children}
             </main>

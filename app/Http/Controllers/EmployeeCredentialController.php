@@ -14,7 +14,7 @@ class EmployeeCredentialController extends Controller
     {
         $data = $request->validate([
             'method' => ['required', 'in:rfid,fingerprint'],
-            'finger_label' => ['nullable', 'string', 'max:50'],
+            'finger_label' => ['nullable', 'required_if:method,fingerprint', 'string', 'max:50'],
         ]);
 
         $enrollment = DB::transaction(function () use ($employee, $data) {

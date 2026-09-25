@@ -6,8 +6,8 @@ use App\Models\Employee;
 use App\Models\FacultyRank;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class EmployeeCredentialTest extends TestCase
@@ -192,6 +192,36 @@ class EmployeeCredentialTest extends TestCase
         $this->assertNotNull($user->employee_id);
         $this->assertSame(14, strlen($credentials['password']));
         $this->assertTrue(Hash::check($credentials['password'], $user->password));
+    }
+
+    public function test_selected_rank_automatically_controls_the_employee_hourly_rate(): void
+    {
+        $employee = $this->employee();
+        $rank = FacultyRank::where('is_active', true)
+            ->where('id', '!=', $employee->faculty_rank_id)
+            ->firstOrFail();
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->put(route('employees.update', $employee), $this->employeePayload($employee, [
+                'faculty_rank_id' => $rank->id,
+                'rate_amount' => 999999.99,
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame((float) $rank->rate_amount, (float) $employee->fresh()->rate_amount);
+    }
+
+    public function test_fingerprint_hardware_registration_requires_a_finger_label(): void
+    {
+        $employee = $this->employee();
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->postJson(route('employees.credentials.enrollments.store', $employee), [
+                'method' => 'fingerprint',
+                'finger_label' => '',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('finger_label');
     }
 
     private function employee(string $employeeNumber = 'COS-9001'): Employee
