@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChartNoAxesCombined, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, PanelLeftClose, PanelLeftOpen, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { dateLabel, fullName } from '../lib/format';
 
@@ -69,7 +69,7 @@ export default function AppLayout({ title, subtitle, children }) {
                 </div>
                 <button className="logout-button" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
             </aside>
-            <button className={`sidebar-toggle${sidebarCollapsed ? ' is-collapsed' : ''}`} type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
+            <button className={`sidebar-toggle${sidebarCollapsed ? ' is-collapsed' : ''}`} type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}>{sidebarCollapsed ? <ChevronRight size={18} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={18} strokeWidth={2.5} aria-hidden="true" />}</button>
             <main className={`main module-${module}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
                 <header className="topbar">
                     <div className="editorial-heading">
