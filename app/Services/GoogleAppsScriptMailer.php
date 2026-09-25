@@ -32,6 +32,8 @@ class GoogleAppsScriptMailer
         );
         $safeName = e($user->name);
         $safeUrl = e($verificationUrl);
+        $textMessage = "Hello {$user->name},\n\nVerify your email address using this link (valid for 48 hours):\n{$verificationUrl}\n\nIf you did not expect this account, contact the payroll administrator.";
+        $htmlMessage = "<p>Hello {$safeName},</p><p>Please verify your email address for the CvSU - Imus Payroll System.</p><p><a href=\"{$safeUrl}\">Verify email address</a></p><p>This link expires in 48 hours. If you did not expect this account, contact the payroll administrator.</p>";
 
         try {
             $response = Http::asJson()
@@ -40,9 +42,11 @@ class GoogleAppsScriptMailer
                 ->post($endpoint, [
                     'secret' => $secret,
                     'to' => $user->email,
+                    'recipient' => $user->email,
                     'subject' => 'Verify your CvSU Payroll email address',
-                    'text' => "Hello {$user->name},\n\nVerify your email address using this link (valid for 48 hours):\n{$verificationUrl}\n\nIf you did not expect this account, contact the payroll administrator.",
-                    'html' => "<p>Hello {$safeName},</p><p>Please verify your email address for the CvSU - Imus Payroll System.</p><p><a href=\"{$safeUrl}\">Verify email address</a></p><p>This link expires in 48 hours. If you did not expect this account, contact the payroll administrator.</p>",
+                    'message' => $textMessage,
+                    'text' => $textMessage,
+                    'html' => $htmlMessage,
                 ]);
 
             $delivered = $response->successful() && $response->json('ok') === true;

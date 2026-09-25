@@ -131,6 +131,8 @@ class ProfileTest extends TestCase
 
         Http::assertSent(fn ($request) => $request['secret'] === 'test-secret'
             && $request['to'] === $user->email
+            && $request['recipient'] === $user->email
+            && str_contains($request['message'], 'Verify your email address')
             && str_contains($request['html'], 'Verify email address'));
     }
 }

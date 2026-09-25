@@ -6,6 +6,8 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_Fingerprint.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <time.h>
 #include "device_config.h"
 
@@ -30,9 +32,9 @@ bool fingerprintAvailable = false;
 bool waitForFingerRelease = false;
 unsigned long lastClockUpdate = 0;
 unsigned long lastFingerprintScan = 0;
-unsigned long lastEnrollmentPoll = 0;
 unsigned long lastWiFiAttempt = 0;
 unsigned long fingerReleaseStarted = 0;
+unsigned long lastFingerprintReconnect = 0;
 
 const unsigned long WIFI_RETRY_MS = 10000;
 const unsigned long ENROLLMENT_POLL_MS = 2000;
@@ -40,6 +42,15 @@ const unsigned long FINGER_RELEASE_TIMEOUT_MS = 5000;
 
 // Keep enrollment connected so requests from the faculty form reach the device.
 const bool ENABLE_REMOTE_ENROLLMENT = true;
+
+struct EnrollmentRequest {
+  char id[24];
+  char method[16];
+  char currentIdentifier[101];
+};
+
+QueueHandle_t enrollmentQueue = nullptr;
+volatile bool enrollmentBusy = false;
 
 void printLine(int row, String text) {
   text = text.substring(0, 16);
@@ -117,11 +128,14 @@ void connectWiFi() {
 }
 
 void showClock() {
-  struct tm info;
-  if (!getLocalTime(&info, 10)) {
-    showMessage("Payroll System", "Time syncing");
+  time_t currentTime = time(nullptr);
+  if (currentTime < 100000) {
+    showMessage("Payroll System", "Time syncing...");
     return;
   }
+
+  struct tm info;
+  localtime_r(&currentTime, &info);
   char dateText[17];
   char timeText[17];
   strftime(dateText, sizeof(dateText), "%m/%d/%Y", &info);
@@ -296,33 +310,62 @@ void enrollRfid(String id) {
   delay(2500);
 }
 
-void checkEnrollment() {
-  if (!ENABLE_REMOTE_ENROLLMENT ||
-      WiFi.status() != WL_CONNECTED ||
-      millis() - lastEnrollmentPoll < ENROLLMENT_POLL_MS) return;
-  lastEnrollmentPoll = millis();
-  HTTPClient http;
-  String url = String(API_BASE_URL) + "/enrollment";
-  if (!http.begin(secureClient, url)) return;
-  http.setConnectTimeout(800);
-  http.setTimeout(1500);
-  addHardwareHeaders(http);
-  int code = http.GET();
-  String response = http.getString();
-  http.end();
-  if (code != 204) {
-    Serial.println("Enrollment poll HTTP " + String(code) + ": " + response);
-  }
-  if (code != 200) return;
+void enrollmentPollTask(void* parameter) {
+  WiFiClientSecure enrollmentClient;
+  enrollmentClient.setInsecure();
 
-  String id = jsonValue(response, "id");
-  String method = jsonValue(response, "method");
-  String currentIdentifier = jsonValue(response, "current_identifier");
-  if (id == "") return;
+  while (true) {
+    bool queueIsEmpty = enrollmentQueue && uxQueueMessagesWaiting(enrollmentQueue) == 0;
+    if (ENABLE_REMOTE_ENROLLMENT &&
+        !enrollmentBusy &&
+        queueIsEmpty &&
+        WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      String url = String(API_BASE_URL) + "/enrollment";
+      if (http.begin(enrollmentClient, url)) {
+        http.setConnectTimeout(800);
+        http.setTimeout(1500);
+        addHardwareHeaders(http);
+        int code = http.GET();
+        String response = http.getString();
+        http.end();
+
+        if (code != 204 && code != 200) {
+          Serial.println("Enrollment poll HTTP " + String(code) + ": " + response);
+        }
+
+        if (code == 200) {
+          String id = jsonValue(response, "id");
+          String method = jsonValue(response, "method");
+          String currentIdentifier = jsonValue(response, "current_identifier");
+          if (id != "") {
+            EnrollmentRequest request = {};
+            id.toCharArray(request.id, sizeof(request.id));
+            method.toCharArray(request.method, sizeof(request.method));
+            currentIdentifier.toCharArray(request.currentIdentifier, sizeof(request.currentIdentifier));
+            xQueueSend(enrollmentQueue, &request, 0);
+          }
+        }
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(ENROLLMENT_POLL_MS));
+  }
+}
+
+void processEnrollmentRequest() {
+  if (!enrollmentQueue || enrollmentBusy) return;
+
+  EnrollmentRequest request;
+  if (xQueueReceive(enrollmentQueue, &request, 0) != pdTRUE) return;
+
+  enrollmentBusy = true;
   digitalWrite(YELLOW_LED_PIN, HIGH);
-  if (method == "rfid") enrollRfid(id);
-  else if (method == "fingerprint") enrollFingerprint(id, currentIdentifier);
+  String method = String(request.method);
+  if (method == "rfid") enrollRfid(String(request.id));
+  else if (method == "fingerprint") enrollFingerprint(String(request.id), String(request.currentIdentifier));
   digitalWrite(YELLOW_LED_PIN, LOW);
+  enrollmentBusy = false;
 }
 
 void sendAttendance(String identifier, String method) {
@@ -417,6 +460,13 @@ void setup() {
   secureClient.setInsecure();
   WiFi.setTxPower(WIFI_POWER_15dBm);
   connectWiFi();
+  enrollmentQueue = xQueueCreate(1, sizeof(EnrollmentRequest));
+  if (enrollmentQueue) {
+    xTaskCreatePinnedToCore(enrollmentPollTask, "enrollment-poll", 12288, nullptr, 1, nullptr, 0);
+    Serial.println("Background enrollment polling started.");
+  } else {
+    Serial.println("Could not create the enrollment request queue.");
+  }
   showMessage("Payroll System", "Ready to tap");
   digitalWrite(YELLOW_LED_PIN, LOW);
   delay(1000);
@@ -432,6 +482,12 @@ void loop() {
     lastClockUpdate = millis();
   }
 
+  if (!fingerprintAvailable && millis() - lastFingerprintReconnect >= 10000) {
+    lastFingerprintReconnect = millis();
+    fingerprintAvailable = finger.verifyPassword();
+    if (fingerprintAvailable) Serial.println("AS608 reconnected for attendance.");
+  }
+
   if (waitForFingerRelease) {
     uint8_t releaseResult = finger.getImage();
     if (releaseResult == FINGERPRINT_NOFINGER ||
@@ -444,5 +500,5 @@ void loop() {
   }
 
   processRfidAttendance();
-  checkEnrollment();
+  processEnrollmentRequest();
 }
