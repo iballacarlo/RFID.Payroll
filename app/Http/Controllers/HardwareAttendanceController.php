@@ -38,18 +38,6 @@ class HardwareAttendanceController extends Controller
             ], 404);
         }
 
-        $now = Carbon::now('Asia/Manila');
-
-        if (! AttendanceCalculator::hasSchedule($employee, $now)) {
-            return response()->json([
-                'ok' => false,
-                'code' => 'no_schedule',
-                'message' => 'No schedule is assigned for this faculty member today.',
-                'display_name' => $this->displayName($employee),
-                'action' => 'NO SCHEDULE',
-            ], 409);
-        }
-
         $result = $this->recordAttendance($employee->id, $data['method']);
 
         return response()->json([

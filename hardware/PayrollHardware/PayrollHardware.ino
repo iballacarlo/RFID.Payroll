@@ -31,6 +31,16 @@ bool waitForFingerRelease = false;
 unsigned long lastClockUpdate = 0;
 unsigned long lastFingerprintScan = 0;
 unsigned long lastEnrollmentPoll = 0;
+unsigned long lastWiFiAttempt = 0;
+unsigned long fingerReleaseStarted = 0;
+
+const unsigned long WIFI_RETRY_MS = 10000;
+const unsigned long ENROLLMENT_POLL_MS = 30000;
+const unsigned long FINGER_RELEASE_TIMEOUT_MS = 5000;
+
+// Keep this false during normal attendance operation. Set it to true only
+// while registering RFID cards or fingerprints from the web application.
+const bool ENABLE_REMOTE_ENROLLMENT = false;
 
 void printLine(int row, String text) {
   text = text.substring(0, 16);
@@ -86,22 +96,30 @@ String rfidUid() {
 }
 
 void connectWiFi() {
+  lastWiFiAttempt = millis();
+  digitalWrite(YELLOW_LED_PIN, HIGH);
   showMessage("Connecting WiFi", "Please wait");
+  WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
-  for (int attempt = 0; WiFi.status() != WL_CONNECTED && attempt < 30; attempt++) delay(500);
+  for (int attempt = 0; WiFi.status() != WL_CONNECTED && attempt < 20; attempt++) delay(500);
   if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("WiFi connected. IP: ");
+    Serial.println(WiFi.localIP());
     successSignal();
     configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
   } else {
+    Serial.print("WiFi connection failed. Status: ");
+    Serial.println(WiFi.status());
     errorSignal();
     showMessage("WiFi Failed", "Check settings");
-    delay(2000);
   }
+  digitalWrite(YELLOW_LED_PIN, LOW);
 }
 
 void showClock() {
   struct tm info;
-  if (!getLocalTime(&info)) {
+  if (!getLocalTime(&info, 10)) {
     showMessage("Payroll System", "Time syncing");
     return;
   }
@@ -117,7 +135,12 @@ void setupFingerprint() {
   fingerSerial.begin(57600, SERIAL_8N1, FINGER_RX_PIN, FINGER_TX_PIN);
   finger.begin(57600);
   fingerprintAvailable = finger.verifyPassword();
-  if (fingerprintAvailable) finger.getParameters();
+  if (fingerprintAvailable) {
+    finger.getParameters();
+    Serial.println("AS608 fingerprint sensor detected.");
+  } else {
+    Serial.println("AS608 fingerprint sensor NOT detected. Check 5V, GND, TX->D13 and RX->D14.");
+  }
 }
 
 void addHardwareHeaders(HTTPClient& http) {
@@ -246,16 +269,22 @@ void enrollRfid(String id) {
 }
 
 void checkEnrollment() {
-  if (WiFi.status() != WL_CONNECTED || millis() - lastEnrollmentPoll < 2000) return;
+  if (!ENABLE_REMOTE_ENROLLMENT ||
+      WiFi.status() != WL_CONNECTED ||
+      millis() - lastEnrollmentPoll < ENROLLMENT_POLL_MS) return;
   lastEnrollmentPoll = millis();
   HTTPClient http;
   String url = String(API_BASE_URL) + "/enrollment";
   if (!http.begin(secureClient, url)) return;
-  http.setTimeout(7000);
+  http.setConnectTimeout(3000);
+  http.setTimeout(4000);
   addHardwareHeaders(http);
   int code = http.GET();
   String response = http.getString();
   http.end();
+  if (code != 204) {
+    Serial.println("Enrollment poll HTTP " + String(code) + ": " + response);
+  }
   if (code != 200) return;
 
   String id = jsonValue(response, "id");
@@ -269,18 +298,32 @@ void checkEnrollment() {
 }
 
 void sendAttendance(String identifier, String method) {
+  digitalWrite(YELLOW_LED_PIN, HIGH);
+  showMessage("Processing...", "Please wait");
+
   HTTPClient http;
   String url = String(API_BASE_URL) + "/tap";
-  if (!http.begin(secureClient, url)) return;
+  if (!http.begin(secureClient, url)) {
+    digitalWrite(YELLOW_LED_PIN, LOW);
+    errorSignal();
+    showMessage("Connection", "failed");
+    delay(2500);
+    return;
+  }
   http.setTimeout(10000);
   addHardwareHeaders(http);
   String payload = "{\"method\":\"" + method + "\",\"identifier\":\"" + identifier + "\"}";
   int code = http.POST(payload);
   String response = http.getString();
   http.end();
+  Serial.println("Attendance HTTP " + String(code) + ": " + response);
+  digitalWrite(YELLOW_LED_PIN, LOW);
   if (code == 200) {
     successSignal();
     showMessage(jsonValue(response, "display_name"), jsonValue(response, "action") + " " + jsonValue(response, "display_time"));
+  } else if (code == 409) {
+    errorSignal();
+    showMessage(jsonValue(response, "display_name"), "NO SCHEDULE");
   } else {
     errorSignal();
     showMessage(code == 404 ? "Not registered" : "Server error", "Code " + String(code));
@@ -291,6 +334,7 @@ void sendAttendance(String identifier, String method) {
 void processRfidAttendance() {
   if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) return;
   String uid = rfidUid();
+  Serial.println("RFID UID: " + uid);
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
   sendAttendance(uid, "rfid");
@@ -301,10 +345,19 @@ void processFingerprintAttendance() {
   uint8_t result = finger.getImage();
   if (result == FINGERPRINT_NOFINGER) return;
   lastFingerprintScan = millis();
+
+  if (result != FINGERPRINT_OK) {
+    Serial.println("Fingerprint getImage error: 0x" + String(result, HEX));
+    return;
+  }
+
   waitForFingerRelease = true;
-  if (result == FINGERPRINT_OK && finger.image2Tz() == FINGERPRINT_OK && finger.fingerSearch() == FINGERPRINT_OK) {
+  fingerReleaseStarted = millis();
+  if (finger.image2Tz() == FINGERPRINT_OK && finger.fingerSearch() == FINGERPRINT_OK) {
+    Serial.println("Fingerprint matched: FP-" + String(finger.fingerID));
     sendAttendance("FP-" + String(finger.fingerID), "fingerprint");
   } else {
+    Serial.println("Fingerprint not registered or could not be converted.");
     errorSignal();
     showMessage("Fingerprint", "Not registered");
     delay(2000);
@@ -317,27 +370,51 @@ void setup() {
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(YELLOW_LED_PIN, OUTPUT);
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  digitalWrite(YELLOW_LED_PIN, HIGH);
   Wire.begin(21, 22);
   lcd.init();
   lcd.backlight();
   SPI.begin(18, 19, 23, RFID_SS_PIN);
   rfid.PCD_Init();
+  rfid.PCD_SetAntennaGain(MFRC522::RxGain_max);
+  byte rfidVersion = rfid.PCD_ReadRegister(rfid.VersionReg);
+  Serial.print("RC522 version: 0x");
+  Serial.println(rfidVersion, HEX);
+  if (rfidVersion == 0x00 || rfidVersion == 0xFF) {
+    Serial.println("RC522 NOT detected. Check 3.3V and SPI wiring.");
+  }
   setupFingerprint();
   secureClient.setInsecure();
+  WiFi.setTxPower(WIFI_POWER_15dBm);
   connectWiFi();
+  showMessage("Payroll System", "Ready to tap");
+  digitalWrite(YELLOW_LED_PIN, LOW);
+  delay(1000);
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) connectWiFi();
-  checkEnrollment();
-  if (waitForFingerRelease) {
-    if (finger.getImage() == FINGERPRINT_NOFINGER) waitForFingerRelease = false;
-    return;
+  if (WiFi.status() != WL_CONNECTED && millis() - lastWiFiAttempt >= WIFI_RETRY_MS) {
+    connectWiFi();
   }
-  processRfidAttendance();
-  processFingerprintAttendance();
+
   if (millis() - lastClockUpdate >= 1000) {
     showClock();
     lastClockUpdate = millis();
   }
+
+  if (waitForFingerRelease) {
+    uint8_t releaseResult = finger.getImage();
+    if (releaseResult == FINGERPRINT_NOFINGER ||
+        releaseResult == FINGERPRINT_PACKETRECIEVEERR ||
+        millis() - fingerReleaseStarted >= FINGER_RELEASE_TIMEOUT_MS) {
+      waitForFingerRelease = false;
+    }
+  } else {
+    processFingerprintAttendance();
+  }
+
+  processRfidAttendance();
+  checkEnrollment();
 }

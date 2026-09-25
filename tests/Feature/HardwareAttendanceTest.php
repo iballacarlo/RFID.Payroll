@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\AttendanceLog;
+use App\Models\Employee;
+use App\Models\FacultyRank;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -39,5 +43,39 @@ class HardwareAttendanceTest extends TestCase
             'identifier' => 'UNKNOWN-RFID',
             'method' => 'rfid',
         ])->assertNotFound();
+    }
+
+    public function test_hardware_records_an_unscheduled_tap_without_counting_payable_hours(): void
+    {
+        config(['services.hardware.api_key' => 'device-secret']);
+        Carbon::setTestNow(Carbon::parse('2026-09-20 08:00:00', 'Asia/Manila'));
+        $rank = FacultyRank::where('is_active', true)->firstOrFail();
+        $employee = Employee::create([
+            'employee_no' => 'COS-9999',
+            'first_name' => 'No',
+            'last_name' => 'Schedule',
+            'faculty_rank_id' => $rank->id,
+            'rate_type' => 'hourly',
+            'rate_amount' => $rank->rate_amount,
+            'status' => 'active',
+        ]);
+        $employee->rfidCards()->create([
+            'rfid_uid' => 'NO-SCHEDULE-CARD',
+            'status' => 'active',
+        ]);
+
+        $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->postJson('/api/hardware/tap', [
+                'identifier' => 'NO-SCHEDULE-CARD',
+                'method' => 'rfid',
+            ])
+            ->assertOk()
+            ->assertJsonPath('action', 'IN');
+
+        $log = AttendanceLog::whereBelongsTo($employee)->firstOrFail();
+        $this->assertSame(0.0, (float) $log->total_hours);
+        $this->assertStringContainsString('no payable hours counted', $log->remarks);
+
+        Carbon::setTestNow();
     }
 }
