@@ -16,6 +16,12 @@ class GoogleAppsScriptMailer
         $secret = config('services.google_mail.webhook_secret');
 
         if (! $endpoint || ! $secret) {
+            Log::warning('Google Apps Script email delivery is not configured.', [
+                'user_id' => $user->id,
+                'webhook_url_configured' => (bool) $endpoint,
+                'webhook_secret_configured' => (bool) $secret,
+            ]);
+
             return false;
         }
 
@@ -39,7 +45,17 @@ class GoogleAppsScriptMailer
                     'html' => "<p>Hello {$safeName},</p><p>Please verify your email address for the CvSU - Imus Payroll System.</p><p><a href=\"{$safeUrl}\">Verify email address</a></p><p>This link expires in 48 hours. If you did not expect this account, contact the payroll administrator.</p>",
                 ]);
 
-            return $response->successful() && $response->json('ok') === true;
+            $delivered = $response->successful() && $response->json('ok') === true;
+
+            if (! $delivered) {
+                Log::warning('Google Apps Script rejected the email delivery request.', [
+                    'user_id' => $user->id,
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                ]);
+            }
+
+            return $delivered;
         } catch (Throwable $exception) {
             Log::warning('Google Apps Script email delivery failed.', [
                 'user_id' => $user->id,

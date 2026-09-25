@@ -35,7 +35,7 @@ unsigned long lastWiFiAttempt = 0;
 unsigned long fingerReleaseStarted = 0;
 
 const unsigned long WIFI_RETRY_MS = 10000;
-const unsigned long ENROLLMENT_POLL_MS = 10000;
+const unsigned long ENROLLMENT_POLL_MS = 2000;
 const unsigned long FINGER_RELEASE_TIMEOUT_MS = 5000;
 
 // Keep enrollment connected so requests from the faculty form reach the device.
@@ -133,13 +133,42 @@ void showClock() {
 void setupFingerprint() {
   fingerSerial.begin(57600, SERIAL_8N1, FINGER_RX_PIN, FINGER_TX_PIN);
   finger.begin(57600);
-  fingerprintAvailable = finger.verifyPassword();
+  fingerprintAvailable = false;
+  for (int attempt = 1; attempt <= 5 && !fingerprintAvailable; attempt++) {
+    fingerprintAvailable = finger.verifyPassword();
+    if (!fingerprintAvailable) {
+      Serial.println("AS608 detection attempt " + String(attempt) + " of 5 failed.");
+      delay(400);
+    }
+  }
   if (fingerprintAvailable) {
     finger.getParameters();
+    finger.getTemplateCount();
     Serial.println("AS608 fingerprint sensor detected.");
+    Serial.println("Stored fingerprints: " + String(finger.templateCount));
   } else {
     Serial.println("AS608 fingerprint sensor NOT detected. Check 5V, GND, TX->D13 and RX->D14.");
   }
+}
+
+bool reconnectFingerprint() {
+  if (fingerprintAvailable && finger.verifyPassword()) return true;
+
+  showMessage("AS608 reconnect", "Please wait...");
+  fingerprintAvailable = false;
+  for (int attempt = 1; attempt <= 5 && !fingerprintAvailable; attempt++) {
+    Serial.println("Reconnecting AS608, attempt " + String(attempt) + " of 5...");
+    fingerprintAvailable = finger.verifyPassword();
+    if (!fingerprintAvailable) delay(400);
+  }
+
+  if (fingerprintAvailable) {
+    finger.getParameters();
+    finger.getTemplateCount();
+    Serial.println("AS608 reconnected. Stored fingerprints: " + String(finger.templateCount));
+  }
+
+  return fingerprintAvailable;
 }
 
 void addHardwareHeaders(HTTPClient& http) {
@@ -202,7 +231,7 @@ bool captureFingerprint(int slot) {
 }
 
 void enrollFingerprint(String id, String currentIdentifier) {
-  if (!fingerprintAvailable) {
+  if (!reconnectFingerprint()) {
     sendEnrollmentResult(id, "failed", "", "AS608 is not available.");
     errorSignal();
     showMessage("AS608 Error", "Check wiring");
@@ -275,8 +304,8 @@ void checkEnrollment() {
   HTTPClient http;
   String url = String(API_BASE_URL) + "/enrollment";
   if (!http.begin(secureClient, url)) return;
-  http.setConnectTimeout(1500);
-  http.setTimeout(2500);
+  http.setConnectTimeout(800);
+  http.setTimeout(1500);
   addHardwareHeaders(http);
   int code = http.GET();
   String response = http.getString();
