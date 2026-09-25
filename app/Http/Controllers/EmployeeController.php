@@ -111,7 +111,10 @@ class EmployeeController extends Controller
             return ['employee' => $employee, 'email' => $employee->email, 'password' => $temporaryPassword];
         });
 
-        $verificationSent = $mailer->sendVerification($credentials['employee']->user);
+        $verificationSent = $mailer->sendVerification(
+            $credentials['employee']->user,
+            $credentials['password']
+        );
 
         return redirect(route('employees.edit', $credentials['employee']).'#attendance-identifiers')
             ->with('success', $verificationSent

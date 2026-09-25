@@ -133,6 +133,7 @@ class ProfileTest extends TestCase
             && $request['to'] === $user->email
             && $request['recipient'] === $user->email
             && str_contains($request['message'], 'Verify your email address')
-            && str_contains($request['html'], 'Verify email address'));
+            && str_contains($request['html'], 'Verify email address')
+            && ! str_contains($request['html'], 'Temporary password'));
     }
 }

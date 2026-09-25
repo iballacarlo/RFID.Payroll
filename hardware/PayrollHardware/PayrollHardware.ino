@@ -51,6 +51,7 @@ struct EnrollmentRequest {
 
 QueueHandle_t enrollmentQueue = nullptr;
 volatile bool enrollmentBusy = false;
+volatile bool attendanceBusy = false;
 
 void printLine(int row, String text) {
   text = text.substring(0, 16);
@@ -72,6 +73,18 @@ void successSignal() {
   delay(150);
   tone(BUZZER_PIN, 1900, 150);
   delay(200);
+  noTone(BUZZER_PIN);
+  digitalWrite(GREEN_LED_PIN, LOW);
+}
+
+void doneSignal() {
+  digitalWrite(RED_LED_PIN, LOW);
+  digitalWrite(YELLOW_LED_PIN, LOW);
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  tone(BUZZER_PIN, 1100, 180);
+  delay(240);
+  tone(BUZZER_PIN, 700, 220);
+  delay(280);
   noTone(BUZZER_PIN);
   digitalWrite(GREEN_LED_PIN, LOW);
 }
@@ -105,6 +118,29 @@ String rfidUid() {
   return uid;
 }
 
+void diagnoseConfiguredWiFi() {
+  Serial.println("Scanning for the configured 2.4 GHz WiFi...");
+  int networkCount = WiFi.scanNetworks(false, true);
+  bool found = false;
+
+  for (int index = 0; index < networkCount; index++) {
+    if (WiFi.SSID(index) != WIFI_NAME) continue;
+
+    found = true;
+    Serial.print("Configured WiFi found. RSSI: ");
+    Serial.print(WiFi.RSSI(index));
+    Serial.print(" dBm, channel: ");
+    Serial.print(WiFi.channel(index));
+    Serial.print(", security code: ");
+    Serial.println(static_cast<int>(WiFi.encryptionType(index)));
+  }
+
+  if (!found) {
+    Serial.println("Configured WiFi was not found. Check the exact SSID and make sure 2.4 GHz is enabled.");
+  }
+  WiFi.scanDelete();
+}
+
 void connectWiFi() {
   lastWiFiAttempt = millis();
   digitalWrite(YELLOW_LED_PIN, HIGH);
@@ -121,6 +157,7 @@ void connectWiFi() {
   } else {
     Serial.print("WiFi connection failed. Status: ");
     Serial.println(WiFi.status());
+    diagnoseConfiguredWiFi();
     errorSignal();
     showMessage("WiFi Failed", "Check settings");
   }
@@ -187,7 +224,7 @@ bool reconnectFingerprint() {
 
 void addHardwareHeaders(HTTPClient& http) {
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Hardware-Key", API_KEY);
+  http.addHeader("X-Hardware-Key", HARDWARE_API_KEY);
 }
 
 bool sendEnrollmentResult(String id, String status, String identifier, String message) {
@@ -209,9 +246,25 @@ int fingerprintSlot(String code) {
 }
 
 int findFreeFingerprintSlot() {
+  if (finger.getParameters() != FINGERPRINT_OK ||
+      finger.getTemplateCount() != FINGERPRINT_OK) {
+    Serial.println("Could not read AS608 storage information.");
+    return -1;
+  }
+
+  Serial.println("AS608 capacity: " + String(finger.capacity) +
+                 ", stored: " + String(finger.templateCount));
   int maximum = finger.capacity > 0 ? finger.capacity : 127;
   for (int slot = 1; slot <= maximum; slot++) {
-    if (finger.loadModel(slot) == FINGERPRINT_NOTFOUND) return slot;
+    uint8_t result = finger.loadModel(slot);
+    if (result == FINGERPRINT_DBRANGEFAIL || result == FINGERPRINT_NOTFOUND) {
+      Serial.println("Using free fingerprint slot " + String(slot) + ".");
+      return slot;
+    }
+    if (result != FINGERPRINT_OK) {
+      Serial.println("AS608 slot " + String(slot) + " read error: 0x" + String(result, HEX));
+      return -1;
+    }
   }
   return 0;
 }
@@ -254,6 +307,13 @@ void enrollFingerprint(String id, String currentIdentifier) {
   }
 
   int newSlot = findFreeFingerprintSlot();
+  if (newSlot < 0) {
+    sendEnrollmentResult(id, "failed", "", "Could not read AS608 fingerprint storage. Check sensor wiring and power.");
+    errorSignal();
+    showMessage("AS608 read error", "Check wiring");
+    delay(2500);
+    return;
+  }
   if (newSlot == 0) {
     sendEnrollmentResult(id, "failed", "", "No free fingerprint slot.");
     errorSignal();
@@ -318,6 +378,7 @@ void enrollmentPollTask(void* parameter) {
     bool queueIsEmpty = enrollmentQueue && uxQueueMessagesWaiting(enrollmentQueue) == 0;
     if (ENABLE_REMOTE_ENROLLMENT &&
         !enrollmentBusy &&
+        !attendanceBusy &&
         queueIsEmpty &&
         WiFi.status() == WL_CONNECTED) {
       HTTPClient http;
@@ -369,29 +430,39 @@ void processEnrollmentRequest() {
 }
 
 void sendAttendance(String identifier, String method) {
+  attendanceBusy = true;
+  unsigned long requestStarted = millis();
   digitalWrite(YELLOW_LED_PIN, HIGH);
   showMessage("Processing...", "Please wait");
 
   HTTPClient http;
   String url = String(API_BASE_URL) + "/tap";
   if (!http.begin(secureClient, url)) {
+    attendanceBusy = false;
     digitalWrite(YELLOW_LED_PIN, LOW);
     errorSignal();
     showMessage("Connection", "failed");
     delay(2500);
     return;
   }
+  http.setReuse(true);
+  http.setConnectTimeout(1500);
   http.setTimeout(10000);
   addHardwareHeaders(http);
   String payload = "{\"method\":\"" + method + "\",\"identifier\":\"" + identifier + "\"}";
   int code = http.POST(payload);
   String response = http.getString();
   http.end();
+  attendanceBusy = false;
   Serial.println("Attendance HTTP " + String(code) + ": " + response);
+  Serial.println("Attendance response time: " + String(millis() - requestStarted) + " ms");
   digitalWrite(YELLOW_LED_PIN, LOW);
   if (code == 200) {
-    successSignal();
-    showMessage(jsonValue(response, "display_name"), jsonValue(response, "action") + " " + jsonValue(response, "display_time"));
+    String action = jsonValue(response, "action");
+    String displayTime = jsonValue(response, "display_time");
+    showMessage(jsonValue(response, "display_name"), attendanceDisplayLine(action, displayTime));
+    if (action == "ALREADY OUT") doneSignal();
+    else successSignal();
   } else if (code == 409) {
     errorSignal();
     showMessage(jsonValue(response, "display_name"), "NO SCHEDULE");
@@ -433,6 +504,11 @@ void processFingerprintAttendance() {
     showMessage("Fingerprint", "Not registered");
     delay(2000);
   }
+}
+
+String attendanceDisplayLine(String action, String displayTime) {
+  if (action == "ALREADY OUT") return "DONE " + displayTime;
+  return action + " " + displayTime;
 }
 
 void setup() {

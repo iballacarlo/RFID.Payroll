@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class EmployeeCredentialTest extends TestCase
@@ -167,6 +168,13 @@ class EmployeeCredentialTest extends TestCase
 
     public function test_admin_creating_faculty_also_creates_a_temporary_login(): void
     {
+        config([
+            'services.google_mail.webhook_url' => 'https://script.google.com/test/exec',
+            'services.google_mail.webhook_secret' => 'test-secret',
+        ]);
+        Http::fake([
+            'https://script.google.com/*' => Http::response(['ok' => true]),
+        ]);
         $rank = FacultyRank::where('is_active', true)->firstOrFail();
         $admin = User::factory()->create(['role' => 'admin']);
 
@@ -192,6 +200,10 @@ class EmployeeCredentialTest extends TestCase
         $this->assertNotNull($user->employee_id);
         $this->assertSame(14, strlen($credentials['password']));
         $this->assertTrue(Hash::check($credentials['password'], $user->password));
+        Http::assertSent(fn ($request) => $request['recipient'] === $user->email
+            && str_contains($request['subject'], 'account is ready')
+            && str_contains($request['message'], $credentials['password'])
+            && str_contains($request['html'], e($credentials['password'])));
     }
 
     public function test_selected_rank_automatically_controls_the_employee_hourly_rate(): void
