@@ -92,6 +92,13 @@ export default function PayrollShow({ record }) {
         });
     };
 
+    const printPayslip = () => {
+        const cleanup = () => document.body.classList.remove('printing-payslip');
+        document.body.classList.add('printing-payslip');
+        window.addEventListener('afterprint', cleanup, { once: true });
+        window.print();
+    };
+
     const download = async () => {
         setDownloading(true);
         try {
@@ -178,7 +185,7 @@ export default function PayrollShow({ record }) {
     return <AppLayout title="Payslip" subtitle={`${period?.period_name || 'Payroll statement'} | Pay date: ${dateLabel(period?.pay_date)}`}>
         <div className="payslip-toolbar print-hidden">
             {canManage && <button type="button" className="payslip-edit-button" onClick={() => setEditing((value) => !value)}><FilePenLine size={17} />{editing ? 'Close editor' : 'Edit details'}</button>}
-            <button type="button" onClick={() => window.print()}><Printer size={17} />Print</button>
+            <button type="button" onClick={printPayslip}><Printer size={17} />Print</button>
             <button type="button" onClick={download} disabled={downloading}><Download size={17} />{downloading ? 'Preparing...' : 'Download PDF'}</button>
         </div>
 

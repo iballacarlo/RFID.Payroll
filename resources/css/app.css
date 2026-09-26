@@ -3905,7 +3905,7 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     box-shadow: 0 8px 28px rgba(18, 48, 35, 0.08);
     color: #17231d;
     margin: 0 auto;
-    max-width: 794px;
+    max-width: 620px;
     width: 100%;
 }
 .official-payslip-header {
@@ -3997,11 +3997,31 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 
 @media print {
     @page { margin: 10mm; size: A4 portrait; }
-    .print-hidden { display: none !important; }
-    .official-payslip { border-color: #000; box-shadow: none; max-width: 190mm; width: 190mm; }
-    .official-payslip-header { min-height: 31mm; padding-bottom: 10px; padding-top: 10px; }
-    .official-pay-column { min-height: 68mm; }
-    .official-signatories { padding-bottom: 18px; padding-top: 22px; }
+    body.printing-payslip { background: #fff !important; margin: 0 !important; min-height: 0 !important; }
+    body.printing-payslip .sidebar,
+    body.printing-payslip .sidebar-toggle,
+    body.printing-payslip .main > :not(.official-payslip) { display: none !important; }
+    body.printing-payslip .main,
+    body.printing-payslip .main.sidebar-collapsed {
+        background: #fff !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+    }
+    body.printing-payslip .official-payslip {
+        border-color: #000;
+        box-shadow: none;
+        break-inside: avoid;
+        margin: 0;
+        max-width: none;
+        overflow: hidden;
+        width: 190mm;
+        zoom: 0.5;
+    }
+    body.printing-payslip .official-payslip-header { min-height: 31mm; padding-bottom: 10px; padding-top: 10px; }
+    body.printing-payslip .official-pay-column { min-height: 68mm; }
+    body.printing-payslip .official-signatories { padding-bottom: 18px; padding-top: 22px; }
 }
 
 /* Faculty Online DTR */
