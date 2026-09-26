@@ -93,7 +93,7 @@ export default function AppLayout({ title, subtitle, children }) {
             <main className={`main module-${module}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
                 <nav className="mobile-navigation" aria-label="Mobile navigation">
                     {availableNavigation.map((item) => (
-                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
+                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-label={item.label} title={item.label} aria-current={item.active(url) ? 'page' : undefined}>
                             <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
                             <span>{item.label}</span>
                         </Link>
