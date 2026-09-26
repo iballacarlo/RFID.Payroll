@@ -13,7 +13,7 @@ use Inertia\Inertia;
 
 class AttendanceController extends Controller
 {
-    private const TIME_OUT_COOLDOWN_MINUTES = 5;
+    private const TIME_OUT_COOLDOWN_MINUTES = 3;
 
     public function index(Request $request)
     {

@@ -2855,14 +2855,21 @@ button.schedule-slot:hover { background: #e5f0e9; }
 }
 
 .login-nav-brand .brand-logos img {
-    height: 40px;
-    width: 40px;
+    background: transparent;
+    border-radius: 0;
+    height: 52px;
+    object-fit: contain;
+    width: 52px;
+}
+.login-nav-brand .brand-logos img:last-child {
+    clip-path: circle(45% at center);
+    transform: scale(1.08);
 }
 
 .login-nav-brand > div:last-child { display: grid; line-height: 1.15; }
-.login-nav-brand strong { font-size: 15px; }
+.login-nav-brand strong { font-size: 18px; }
 .login-nav-brand span,
-.login-campus { color: #c4d6cc; font-size: 11px; }
+.login-campus { color: #c4d6cc; font-size: 12px; }
 .login-campus { font-weight: 700; text-transform: uppercase; }
 
 .login-hero {
@@ -2932,6 +2939,25 @@ button.schedule-slot:hover { background: #e5f0e9; }
     visibility: visible;
 }
 .login-auth .password-toggle:hover { background: #073d28; color: #f1ca6d; }
+.forgot-password-link {
+    color: #f1ca6d;
+    font-size: 12px;
+    font-weight: 800;
+    justify-self: end;
+    margin-top: -7px;
+}
+.forgot-password-link:hover { color: #fff; }
+.auth-back-link {
+    align-items: center;
+    color: #d7e7de;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 700;
+    gap: 6px;
+    justify-self: center;
+}
+.auth-back-link:hover { color: #f1ca6d; }
+.login-auth .full { align-items: center; display: inline-flex; gap: 8px; justify-content: center; }
 
 .login-proof {
     background: rgba(6, 27, 18, 0.82);
@@ -2969,7 +2995,7 @@ button.schedule-slot:hover { background: #e5f0e9; }
     .login-page { padding: 0 16px 20px; }
     .login-nav { min-height: 76px; }
     .login-campus { display: none; }
-    .login-nav-brand .brand-logos img { height: 34px; width: 34px; }
+    .login-nav-brand .brand-logos img { height: 42px; width: 42px; }
     .login-hero { gap: 34px; min-height: 0; padding: 44px 0; }
     .login-copy h1 { font-size: 46px; }
     .login-copy p { font-size: 14px; }
@@ -3605,9 +3631,11 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 .sidebar.is-collapsed .sidebar-account { justify-content: center; padding-left: 0; padding-right: 0; }
 .sidebar.is-collapsed .logout-button { align-items: center; display: flex; justify-content: center; padding-left: 0; padding-right: 0; }
 .main.sidebar-collapsed { margin-left: 76px; }
+.mobile-navigation { display: none; }
 
 @media (max-width: 900px) {
     .sidebar-toggle { display: none; }
+    .sidebar > nav { display: none; }
     .sidebar.is-collapsed { padding: 10px 16px 0; width: 100%; }
     .sidebar.is-collapsed .brand { flex-direction: row; justify-content: flex-start; margin: 0 0 8px; }
     .sidebar.is-collapsed .brand-copy,
@@ -3618,6 +3646,33 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     .nav-group { display: flex; gap: 3px; }
     .sidebar.is-collapsed nav a { justify-content: flex-start; padding: 6px 10px; }
     .main.sidebar-collapsed { margin-left: 0; }
+    .mobile-navigation {
+        background: var(--cvsu-deep);
+        border-bottom: 3px solid var(--cvsu-gold);
+        display: flex;
+        gap: 4px;
+        margin: -18px -18px 18px;
+        overflow-x: auto;
+        padding: 8px 14px;
+        scrollbar-width: thin;
+        width: calc(100% + 36px);
+    }
+    .mobile-navigation a {
+        align-items: center;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        color: #d9e7df;
+        display: inline-flex;
+        flex: 0 0 auto;
+        font-size: 12px;
+        font-weight: 700;
+        gap: 8px;
+        min-height: 40px;
+        padding: 7px 11px;
+        white-space: nowrap;
+    }
+    .mobile-navigation a:hover { background: rgba(255, 255, 255, 0.1); color: #fff; padding-left: 11px; }
+    .mobile-navigation a.active { background: #fff; color: var(--cvsu-deep); padding-left: 11px; }
 }
 
 .topbar {
@@ -3836,39 +3891,39 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
     box-shadow: 0 8px 28px rgba(18, 48, 35, 0.08);
     color: #17231d;
     margin: 0 auto;
-    max-width: 1040px;
+    max-width: 794px;
     width: 100%;
 }
 .official-payslip-header {
     align-items: center;
     border-bottom: 2px solid #173f2e;
     display: grid;
-    gap: 22px;
-    grid-template-columns: 92px 1fr 130px;
-    min-height: 172px;
-    padding: 22px 30px;
+    gap: 18px;
+    grid-template-columns: 76px 1fr 112px;
+    min-height: 132px;
+    padding: 18px 24px;
     position: relative;
 }
-.official-payslip-header img { height: 82px; justify-self: center; object-fit: contain; width: 82px; }
+.official-payslip-header img { height: 66px; justify-self: center; object-fit: contain; width: 66px; }
 .official-payslip-header > div { text-align: center; }
-.official-payslip-header h2 { color: #143f2d; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; letter-spacing: 0; margin: 0; text-transform: uppercase; }
-.official-payslip-header strong { display: block; font-size: 17px; margin: 3px 0 8px; }
-.official-payslip-header p { font-size: 12px; line-height: 1.55; margin: 0; }
-.official-payslip-header a { color: #176b46; display: inline-block; font-size: 12px; font-weight: 700; margin-top: 3px; }
+.official-payslip-header h2 { color: #143f2d; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; letter-spacing: 0; margin: 0; text-transform: uppercase; }
+.official-payslip-header strong { display: block; font-size: 15px; margin: 2px 0 5px; }
+.official-payslip-header p { font-size: 10px; line-height: 1.45; margin: 0; }
+.official-payslip-header a { color: #176b46; display: inline-block; font-size: 10px; font-weight: 700; margin-top: 2px; }
 .official-copy-label { align-self: start; background: #f4c44d; color: #183c2d; font-size: 9px; font-weight: 900; justify-self: end; padding: 7px 9px; text-transform: uppercase; }
 
-.official-employee-details { display: grid; gap: 7px; padding: 20px 28px; }
+.official-employee-details { display: grid; gap: 5px; padding: 14px 22px; }
 .official-employee-details > div { align-items: baseline; display: grid; gap: 18px; grid-template-columns: 150px minmax(0, 1fr); }
 .official-employee-details span { color: #52645b; font-size: 12px; }
 .official-employee-details strong { font-size: 13px; overflow-wrap: anywhere; }
 
 .official-pay-columns { border-bottom: 2px solid #173f2e; border-top: 2px solid #173f2e; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.official-pay-column { display: flex; flex-direction: column; min-height: 390px; padding: 0 22px 0; }
+.official-pay-column { display: flex; flex-direction: column; min-height: 285px; padding: 0 18px; }
 .official-pay-column + .official-pay-column { border-left: 2px solid #173f2e; }
-.official-column-heading { align-items: baseline; background: #e9f1ed; display: flex; justify-content: space-between; margin: 0 -22px 11px; padding: 10px 22px; }
+.official-column-heading { align-items: baseline; background: #e9f1ed; display: flex; justify-content: space-between; margin: 0 -18px 7px; padding: 8px 18px; }
 .official-column-heading span { color: #174f38; font-size: 12px; font-weight: 900; text-transform: uppercase; }
 .official-column-heading small { color: #64766d; font-size: 9px; }
-.official-pay-row { align-items: baseline; display: flex; gap: 18px; justify-content: space-between; min-height: 26px; padding: 4px 0; }
+.official-pay-row { align-items: baseline; display: flex; gap: 14px; justify-content: space-between; min-height: 22px; padding: 3px 0; }
 .official-pay-row span { font-size: 12px; }
 .official-pay-row strong { font-size: 12px; white-space: nowrap; }
 .official-pay-row.is-subrow span { padding-left: 15px; }
@@ -3877,14 +3932,14 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 .official-pay-row.is-total span,
 .official-pay-row.is-total strong { color: #123e2b; font-size: 13px; font-weight: 900; }
 
-.official-net-income { align-items: center; background: #f5f7f6; border-bottom: 2px solid #173f2e; display: flex; justify-content: space-between; padding: 12px 28px; }
+.official-net-income { align-items: center; background: #f5f7f6; border-bottom: 2px solid #173f2e; display: flex; justify-content: space-between; padding: 9px 22px; }
 .official-net-income span { font-size: 14px; font-weight: 900; text-transform: uppercase; }
 .official-net-income strong { color: #0d5c3a; font-size: 21px; }
-.official-government-ids { display: grid; gap: 0 28px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 17px 28px; }
+.official-government-ids { display: grid; gap: 0 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px 22px; }
 .official-government-ids > div { align-items: baseline; border-bottom: 1px solid #d9e1dd; display: grid; gap: 12px; grid-template-columns: 90px 1fr; min-height: 32px; padding: 6px 0; }
 .official-government-ids span { color: #53665c; font-size: 11px; font-weight: 700; }
 .official-government-ids strong { font-size: 12px; }
-.official-signatories { border-top: 1px solid #aebdb5; display: grid; gap: 80px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 30px 65px 26px; }
+.official-signatories { border-top: 1px solid #aebdb5; display: grid; gap: 64px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 22px 52px 20px; }
 .official-signatories > div { display: grid; justify-items: center; text-align: center; }
 .official-signatories span { align-self: start; font-size: 10px; font-weight: 900; justify-self: start; margin-bottom: 30px; text-transform: uppercase; }
 .official-signatories i { border-top: 1px solid #31473c; display: block; width: 100%; }
@@ -3929,9 +3984,9 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 @media print {
     @page { margin: 10mm; size: A4 portrait; }
     .print-hidden { display: none !important; }
-    .official-payslip { border-color: #000; box-shadow: none; max-width: none; }
-    .official-payslip-header { min-height: 135px; padding-bottom: 14px; padding-top: 14px; }
-    .official-pay-column { min-height: 330px; }
+    .official-payslip { border-color: #000; box-shadow: none; max-width: 190mm; width: 190mm; }
+    .official-payslip-header { min-height: 31mm; padding-bottom: 10px; padding-top: 10px; }
+    .official-pay-column { min-height: 68mm; }
     .official-signatories { padding-bottom: 18px; padding-top: 22px; }
 }
 

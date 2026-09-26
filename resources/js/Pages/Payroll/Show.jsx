@@ -96,8 +96,8 @@ export default function PayrollShow({ record }) {
             const { jsPDF } = await import('jspdf');
             const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
             const logo = await imageDataUrl('/images/cvsu-logo.png');
-            const x = 12;
-            const width = 186;
+            const x = 15;
+            const width = 180;
             const center = 105;
             const divider = 105;
             const right = x + width;
@@ -111,62 +111,62 @@ export default function PayrollShow({ record }) {
 
             pdf.setDrawColor(20, 46, 37);
             pdf.setLineWidth(0.45);
-            pdf.rect(x, 10, width, 220);
-            pdf.addImage(logo, 'PNG', x + 7, 17, 22, 22);
+            pdf.rect(x, 12, width, 166);
+            pdf.addImage(logo, 'PNG', x + 7, 18, 18, 18);
             pdf.setTextColor(20, 46, 37);
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(12);
             text('CAVITE STATE UNIVERSITY', center, 18, { align: 'center' });
             pdf.setFontSize(10);
-            text('Imus Campus', center, 24, { align: 'center' });
+            text('Imus Campus', center, 23, { align: 'center' });
             pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(8.5);
-            text('Cavite Civic Center, Palico IV, Imus, Cavite', center, 30, { align: 'center' });
-            text('(046) 471-66-07 / (046) 686-2349', center, 35, { align: 'center' });
-            text('www.cvsu.edu.ph', center, 40, { align: 'center' });
+            text('Cavite Civic Center, Palico IV, Imus, Cavite', center, 28, { align: 'center' });
+            text('(046) 471-66-07 / (046) 686-2349', center, 33, { align: 'center' });
+            text('www.cvsu.edu.ph', center, 38, { align: 'center' });
 
             pdf.setTextColor(20, 20, 20);
             pdf.setFontSize(8.5);
             [['Employee Name:', employeeName], ['Employee ID No.:', employee?.employee_no || '-'], ['Department:', employee?.department || '-'], ['Cut-off Date:', cutoff]].forEach(([label, value], index) => {
-                const y = 51 + (index * 6);
+                const y = 46 + (index * 5);
                 pdf.setFont('helvetica', 'normal'); text(label, x + 3, y);
                 pdf.setFont('helvetica', 'bold'); text(value, x + 46, y);
             });
-            pdf.line(x, 76, right, 76);
-            pdf.line(divider, 76, divider, 190);
-            pdf.setFontSize(8.3);
-            [['RATE PER HOUR', amount(employee?.rate_amount, false)], ['TOTAL NO. OF HOURS', amount(record.total_hours_worked, false)], ['Overtime Pay', amount(record.overtime_pay)], ['Late/Undertime (mins.)', record.late_undertime_minutes || '-'], ['Absent (days)', Number(record.absent_days || 0) || '-'], ['Others', amount(record.other_earnings)], ['Increase', amount(record.increase_amount)]].forEach(([label, value], index) => pair(label, value, 82 + (index * 6)));
+            pdf.line(x, 64, right, 64);
+            pdf.line(divider, 64, divider, 147);
+            pdf.setFontSize(7.8);
+            [['RATE PER HOUR', amount(employee?.rate_amount, false)], ['TOTAL NO. OF HOURS', amount(record.total_hours_worked, false)], ['Overtime Pay', amount(record.overtime_pay)], ['Late/Undertime (mins.)', record.late_undertime_minutes || '-'], ['Absent (days)', Number(record.absent_days || 0) || '-'], ['Others', amount(record.other_earnings)], ['Increase', amount(record.increase_amount)]].forEach(([label, value], index) => pair(label, value, 70 + (index * 5)));
             [['Withholding Tax', record.withholding_tax], ['GSIS', record.gsis_deduction], ['PhilHealth', record.philhealth_deduction], ['Pag-IBIG', record.pag_ibig_deduction], ['LOANS:', null], ['Multi-Purpose Loan', record.multi_purpose_loan], ['GSIS Loan', record.gsis_loan], ['GSIS ePlus Loan', record.gsis_eplus_loan], ['FEA Dues', record.fea_dues], ['OBA', record.oba_deduction], ['CRA', record.cra_deduction]].forEach(([label, value], index) => {
                 pdf.setFont('helvetica', label === 'LOANS:' ? 'bold' : 'normal');
-                text(label, divider + (index > 4 && index < 8 ? 6 : 3), 82 + (index * 6));
+                text(label, divider + (index > 4 && index < 8 ? 6 : 3), 70 + (index * 5));
                 if (value !== null) {
                     pdf.setFont('helvetica', 'bold');
-                    text(amount(value), right - 3, 82 + (index * 6), { align: 'right' });
+                    text(amount(value), right - 3, 70 + (index * 5), { align: 'right' });
                 }
             });
-            pdf.line(x, 166, right, 166);
-            pair('Total Earnings:', amount(totalEarnings, false), 173);
-            pair('Total Deductions:', amount(record.total_deductions), 173, divider + 3, right - 3);
-            pdf.line(x, 178, right, 178);
+            pdf.line(x, 126, right, 126);
+            pair('Total Earnings:', amount(totalEarnings, false), 133);
+            pair('Total Deductions:', amount(record.total_deductions), 133, divider + 3, right - 3);
+            pdf.line(x, 137, right, 137);
             pdf.setFontSize(10);
-            pair('Net Income:', amount(record.net_pay, false), 185, x + 3, right - 3);
-            pdf.line(x, 190, right, 190);
+            pair('Net Income:', amount(record.net_pay, false), 144, x + 3, right - 3);
+            pdf.line(x, 147, right, 147);
             pdf.setFontSize(8.5);
             [['TIN #', employee?.tin_no], ['GSIS #', employee?.gsis_no], ['Pag-IBIG #', employee?.pag_ibig_no], ['PhilHealth #', employee?.philhealth_no]].forEach(([label, value], index) => {
-                pdf.setFont('helvetica', 'normal'); text(label, x + 3, 197 + (index * 6));
-                pdf.setFont('helvetica', 'bold'); text(value || '-', x + 35, 197 + (index * 6));
+                pdf.setFont('helvetica', 'normal'); text(label, x + 3, 153 + (index * 5));
+                pdf.setFont('helvetica', 'bold'); text(value || '-', x + 35, 153 + (index * 5));
             });
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'bold');
-            text('PREPARED BY:', 61, 241, { align: 'center' });
-            text('NOTED BY:', 154, 241, { align: 'center' });
-            pdf.line(35, 254, 87, 254);
-            pdf.line(128, 254, 180, 254);
-            text('CELINE JANE S. MAGSUMBOL', 61, 259, { align: 'center' });
-            text('ANALIN I. VASQUEZ', 154, 259, { align: 'center' });
+            text('PREPARED BY:', 61, 195, { align: 'center' });
+            text('NOTED BY:', 154, 195, { align: 'center' });
+            pdf.line(35, 207, 87, 207);
+            pdf.line(128, 207, 180, 207);
+            text('CELINE JANE S. MAGSUMBOL', 61, 212, { align: 'center' });
+            text('ANALIN I. VASQUEZ', 154, 212, { align: 'center' });
             pdf.setFont('helvetica', 'normal');
-            text('Admin Aide VI', 61, 264, { align: 'center' });
-            text('Admin Officer I', 154, 264, { align: 'center' });
+            text('Admin Aide VI', 61, 217, { align: 'center' });
+            text('Admin Officer I', 154, 217, { align: 'center' });
             pdf.save(`payslip-${employee?.employee_no || record.id}-${period?.start_date || 'period'}.pdf`);
         } finally {
             setDownloading(false);

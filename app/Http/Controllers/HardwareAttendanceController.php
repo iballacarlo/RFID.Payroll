@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class HardwareAttendanceController extends Controller
 {
-    private const TIME_OUT_COOLDOWN_MINUTES = 5;
+    private const TIME_OUT_COOLDOWN_MINUTES = 3;
 
     public function tap(Request $request)
     {

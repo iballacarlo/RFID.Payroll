@@ -1,6 +1,7 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { CalendarClock, Eye, EyeOff, ScanLine, ShieldCheck } from 'lucide-react';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function Login() {
     const { errors, flash } = usePage().props;
@@ -12,50 +13,24 @@ export default function Login() {
         form.post('/login');
     };
 
-    return <>
-        <Head title="Sign in | Payroll System" />
-        <main className="login-page">
-            <div className="login-backdrop" />
-            <div className="login-overlay" />
-            <header className="login-nav">
-                <div className="login-nav-brand">
-                    <div className="brand-logos"><img src="/images/cvsu-logo.png" alt="Cavite State University logo" /><img src="/images/dcs-logo.png" alt="Department of Computer Studies logo" /></div>
-                    <div><strong>CvSU Imus</strong><span>Payroll System</span></div>
-                </div>
-                <span className="login-campus">Department of Computer Studies</span>
-            </header>
-
-            <section className="login-hero">
-                <div className="login-copy">
-                    <span className="login-eyebrow">Payroll and attendance operations</span>
-                    <h1>Payroll<br />&amp; Attendance</h1>
-                    <p>A secure workspace for faculty records, schedule-based attendance, and accurate payroll processing.</p>
-                </div>
-
-                <section className="login-auth" aria-labelledby="login-title">
-                    <span className="login-form-index">SECURE ACCESS</span>
-                    <h2 id="login-title">Sign in</h2>
-                    <p>Use your assigned system account.</p>
-                    {flash?.success && <div className="alert success">{flash.success}</div>}
-                    {errors?.email && <div className="alert error">{errors.email}</div>}
-                    <form onSubmit={submit}>
-                        <label>Email address<input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} required autoFocus autoComplete="email" /></label>
-                        <label>Password
-                            <span className="password-wrap">
-                                <input type={showPassword ? 'text' : 'password'} value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} required autoComplete="current-password" />
-                                <button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} title={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}</button>
-                            </span>
-                        </label>
-                        <button className="full" type="submit" disabled={form.processing}>{form.processing ? 'Signing in...' : 'Sign in to system'}</button>
-                    </form>
-                </section>
-            </section>
-
-            <section className="login-proof" aria-label="System capabilities">
-                <div><ScanLine size={22} /><span><strong>RFID &amp; Biometrics</strong><small>Reliable attendance capture</small></span></div>
-                <div><CalendarClock size={22} /><span><strong>Schedule Based</strong><small>Payable hours from assigned classes</small></span></div>
-                <div><ShieldCheck size={22} /><span><strong>Role Secured</strong><small>Access for authorized personnel</small></span></div>
-            </section>
-        </main>
-    </>;
+    return <AuthLayout title="Sign in">
+        <section className="login-auth" aria-labelledby="login-title">
+            <span className="login-form-index">SECURE ACCESS</span>
+            <h2 id="login-title">Sign in</h2>
+            <p>Use your assigned system account.</p>
+            {flash?.success && <div className="alert success">{flash.success}</div>}
+            {errors?.email && <div className="alert error">{errors.email}</div>}
+            <form onSubmit={submit}>
+                <label>Email address<input type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} required autoFocus autoComplete="email" /></label>
+                <label>Password
+                    <span className="password-wrap">
+                        <input type={showPassword ? 'text' : 'password'} value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} required autoComplete="current-password" />
+                        <button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} title={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}</button>
+                    </span>
+                </label>
+                <Link className="forgot-password-link" href="/forgot-password">Forgot password?</Link>
+                <button className="full" type="submit" disabled={form.processing}>{form.processing ? 'Signing in...' : 'Sign in to system'}</button>
+            </form>
+        </section>
+    </AuthLayout>;
 }

@@ -83,6 +83,14 @@ export default function AppLayout({ title, subtitle, children }) {
                         <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></Link>
                     </div>
                 </header>
+                <nav className="mobile-navigation" aria-label="Mobile navigation">
+                    {availableNavigation.map((item) => (
+                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
+                            <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
+                            <span>{item.label}</span>
+                        </Link>
+                    ))}
+                </nav>
                 {user.must_change_password && <section className="password-change-reminder" role="status"><KeyRound size={20} /><div><strong>Change your temporary password</strong><span>Your account is still using the temporary password issued by the administrator.</span></div><Link href="/profile">Change password</Link></section>}
                 {user.role === 'faculty' && !user.email_verified && <section className="email-verification-reminder" role="status"><MailWarning size={20} /><div><strong>Verify your email address</strong><span>Open the verification link sent to {user.email}. This confirms that the address belongs to you.</span></div><button type="button" onClick={() => router.post('/email/verification-notification', {}, { preserveScroll: true })}>Resend link</button></section>}
                 {flash?.success && <div className="alert success">{flash.success}</div>}

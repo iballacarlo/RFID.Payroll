@@ -12,6 +12,65 @@ class GoogleAppsScriptMailer
 {
     public function sendVerification(User $user, ?string $temporaryPassword = null): bool
     {
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHours(48),
+            ['user' => $user->id, 'hash' => sha1($user->getEmailForVerification())]
+        );
+        $textMessage = $this->textMessage($user, $verificationUrl, $temporaryPassword);
+        $htmlMessage = $this->htmlMessage($user, $verificationUrl, $temporaryPassword);
+
+        return $this->deliver(
+            $user,
+            $temporaryPassword
+                ? 'Your CvSU - Imus Payroll account is ready'
+                : 'Verify your CvSU Payroll email address',
+            $textMessage,
+            $htmlMessage
+        );
+    }
+
+    public function sendPasswordReset(User $user, string $token): bool
+    {
+        $resetUrl = route('password.reset', [
+            'token' => $token,
+            'email' => $user->email,
+        ]);
+        $safeName = e($user->name);
+        $safeResetUrl = e($resetUrl);
+        $safeLogoUrl = e(asset('images/cvsu-logo.png'));
+        $textMessage = "Hello {$user->name},\n\nWe received a request to reset your CvSU - Imus Payroll System password. Use this link within 60 minutes:\n{$resetUrl}\n\nIf you did not request a password reset, you can ignore this email. Your password will remain unchanged.";
+        $htmlMessage = <<<HTML
+            <!doctype html>
+            <html lang="en">
+            <head><meta name="viewport" content="width=device-width, initial-scale=1"><meta charset="utf-8"><title>Reset your CvSU Payroll password</title></head>
+            <body style="margin:0;padding:0;background:#eef3f1;font-family:Arial,Helvetica,sans-serif;color:#20312b;">
+                <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Reset your CvSU - Imus Payroll System password.</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#eef3f1;">
+                    <tr><td align="center" style="padding:28px 12px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;border-collapse:collapse;background:#ffffff;border:1px solid #d7e1dc;">
+                            <tr><td style="padding:22px 32px;background:#174d38;border-top:5px solid #d6a400;">
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                                    <td width="64" style="vertical-align:middle;"><img src="{$safeLogoUrl}" width="52" height="52" alt="CvSU" style="display:block;border:0;width:52px;height:52px;"></td>
+                                    <td style="vertical-align:middle;color:#ffffff;"><div style="font-size:12px;line-height:1.4;text-transform:uppercase;color:#c9ddd4;">Cavite State University</div><div style="font-size:20px;line-height:1.3;font-weight:700;">Imus Campus</div><div style="font-size:12px;line-height:1.4;color:#f2c94c;">DCS Payroll System</div></td>
+                                </tr></table>
+                            </td></tr>
+                            <tr><td style="padding:30px 32px 20px;"><h1 style="margin:0 0 14px;font-size:24px;line-height:1.3;color:#174d38;">Reset your password</h1><p style="margin:0;font-size:15px;line-height:1.7;color:#455852;">Hello <strong>{$safeName}</strong>, we received a request to create a new password for your payroll account.</p></td></tr>
+                            <tr><td align="center" style="padding:4px 32px 26px;"><a href="{$safeResetUrl}" style="display:inline-block;padding:13px 24px;background:#1f7a4d;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:4px;">Reset password</a><p style="margin:13px 0 0;font-size:13px;color:#65736e;">This secure link expires in 60 minutes.</p></td></tr>
+                            <tr><td style="padding:0 32px 28px;"><div style="padding:16px 18px;background:#fff8df;border:1px solid #ead38a;font-size:13px;line-height:1.6;color:#604b0b;"><strong>Did not request this?</strong> Ignore this email. Your current password will remain unchanged.</div></td></tr>
+                            <tr><td style="padding:20px 32px;background:#f6f8f7;border-top:1px solid #dbe3df;font-size:12px;line-height:1.6;color:#65736e;">For your security, never share this link with anyone.</td></tr>
+                        </table>
+                    </td></tr>
+                </table>
+            </body>
+            </html>
+        HTML;
+
+        return $this->deliver($user, 'Reset your CvSU Payroll password', $textMessage, $htmlMessage);
+    }
+
+    private function deliver(User $user, string $subject, string $textMessage, string $htmlMessage): bool
+    {
         $endpoint = config('services.google_mail.webhook_url');
         $secret = config('services.google_mail.webhook_secret');
 
@@ -25,14 +84,6 @@ class GoogleAppsScriptMailer
             return false;
         }
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addHours(48),
-            ['user' => $user->id, 'hash' => sha1($user->getEmailForVerification())]
-        );
-        $textMessage = $this->textMessage($user, $verificationUrl, $temporaryPassword);
-        $htmlMessage = $this->htmlMessage($user, $verificationUrl, $temporaryPassword);
-
         try {
             $response = Http::asJson()
                 ->withOptions(['allow_redirects' => true])
@@ -41,9 +92,7 @@ class GoogleAppsScriptMailer
                     'secret' => $secret,
                     'to' => $user->email,
                     'recipient' => $user->email,
-                    'subject' => $temporaryPassword
-                        ? 'Your CvSU - Imus Payroll account is ready'
-                        : 'Verify your CvSU Payroll email address',
+                    'subject' => $subject,
                     'message' => $textMessage,
                     'text' => $textMessage,
                     'html' => $htmlMessage,

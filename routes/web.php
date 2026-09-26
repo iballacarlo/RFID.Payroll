@@ -8,6 +8,7 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeCredentialController;
 use App\Http\Controllers\FacultyRankController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -18,6 +19,12 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login.store');
+    Route::get('forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('forgot-password', [PasswordResetController::class, 'store'])
+        ->middleware('throttle:3,10')
+        ->name('password.email');
+    Route::get('reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('reset-password', [PasswordResetController::class, 'update'])->name('password.update');
 });
 
 Route::get('email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
