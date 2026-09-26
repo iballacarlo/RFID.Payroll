@@ -79,6 +79,13 @@ export default function AppLayout({ title, subtitle, children }) {
                 </div>
                 <button className="logout-button" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
             </aside>
+            <div className="mobile-branding">
+                <div className="mobile-branding-identity">
+                    <img src="/images/cvsu-logo.png" alt="Cavite State University logo" />
+                    <span><small>Cavite State University</small><strong>Imus Campus</strong><b>DCS Payroll</b></span>
+                </div>
+                <button className="mobile-logout" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
+            </div>
             <button className={`sidebar-toggle${sidebarCollapsed ? ' is-collapsed' : ''}`} type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}>{sidebarCollapsed ? <ChevronRight size={18} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={18} strokeWidth={2.5} aria-hidden="true" />}</button>
             <main className={`main module-${module}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
                 <header className="topbar">

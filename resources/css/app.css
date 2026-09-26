@@ -4262,3 +4262,255 @@ html[data-theme='dark'] .official-payslip small { color: #53665c; }
     .faculty-temporary-credentials { align-items: flex-start; flex-wrap: wrap; }
     .faculty-temporary-credentials button { margin-left: 35px; }
 }
+
+/* Complete application dark theme */
+.mobile-branding { display: none; }
+
+html[data-theme='dark'] body,
+html[data-theme='dark'] .main {
+    background: #0b1510;
+    color: #e7f0ea;
+}
+html[data-theme='dark'] .sidebar {
+    background: #07110c;
+    border-right-color: #294336;
+}
+html[data-theme='dark'] .sidebar::before { background: #d6ad43; }
+html[data-theme='dark'] .sidebar .brand { border-bottom-color: #294336; }
+html[data-theme='dark'] .sidebar .brand-copy small,
+html[data-theme='dark'] .sidebar-section-label,
+html[data-theme='dark'] .sidebar-account small { color: #9fb9aa; }
+html[data-theme='dark'] .sidebar .brand-copy strong,
+html[data-theme='dark'] .sidebar-account strong { color: #f4f8f5; }
+html[data-theme='dark'] .sidebar nav a { color: #c8d8cf; }
+html[data-theme='dark'] .sidebar nav a:hover { background: #172a20; color: #fff; }
+html[data-theme='dark'] .sidebar nav a.active {
+    background: #dcebe2;
+    border-color: #dcebe2;
+    color: #092719;
+}
+html[data-theme='dark'] .logout-button { border-color: #496657; color: #edf5f0; }
+html[data-theme='dark'] .logout-button:hover { background: #20372b; border-color: #6f8c7c; }
+
+html[data-theme='dark'] .main :is(.panel, .compact-form, .form-grid, .schedule-page, .settings-tool, .add-rank-panel, .test-attendance-panel, .bento-panel, .bento-metric, .attendance-bento, .payroll-bento, .payslip, .payroll-adjustment-editor, .dtr-today, .dtr-cutoff-section, .dtr-history) {
+    background: #15241c;
+    border-color: #365044;
+    color: #e5eee8;
+}
+html[data-theme='dark'] .main :is(.panel, .form-grid, .schedule-page, .settings-tool, .bento-panel, .dtr-today, .dtr-cutoff-section, .dtr-history) :is(h1, h2, h3, h4, strong) { color: #f3f7f4; }
+html[data-theme='dark'] .main :is(.panel, .form-grid, .schedule-page, .settings-tool, .bento-panel, .dtr-today, .dtr-cutoff-section, .dtr-history) :is(p, small) { color: #aec1b6; }
+html[data-theme='dark'] .panel-heading,
+html[data-theme='dark'] .form-section-title,
+html[data-theme='dark'] .profile-history-row,
+html[data-theme='dark'] .credential-row,
+html[data-theme='dark'] .contract-period,
+html[data-theme='dark'] .settings-tool { border-color: #365044; }
+html[data-theme='dark'] .form-section-title > span,
+html[data-theme='dark'] .settings-tool-icon,
+html[data-theme='dark'] .history-icon,
+html[data-theme='dark'] .credential-icon,
+html[data-theme='dark'] .metric-icon,
+html[data-theme='dark'] .dtr-time-icon {
+    background: #203a2d;
+    border-color: #436452;
+    color: #7fd3a4;
+}
+html[data-theme='dark'] .metric-gold .metric-icon,
+html[data-theme='dark'] .dtr-time-icon.is-out { background: #3b301b; color: #f0ca6c; }
+html[data-theme='dark'] .metric-blue .metric-icon,
+html[data-theme='dark'] .dtr-time-icon.is-hours { background: #1d3042; color: #91bced; }
+html[data-theme='dark'] .dtr-time-icon.is-variance { background: #30263d; color: #c6a8e8; }
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] .search-control,
+html[data-theme='dark'] .currency-input,
+html[data-theme='dark'] .rate-input {
+    background: #0d1a14;
+    border-color: #486556;
+    color: #f1f6f3;
+}
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder { color: #82998c; opacity: 1; }
+html[data-theme='dark'] :is(.phone-input, .email-input, .currency-input, .rate-input) > span {
+    background: #1c3026;
+    border-color: #486556;
+    color: #c7d7ce;
+}
+html[data-theme='dark'] fieldset,
+html[data-theme='dark'] .payroll-adjustment-editor fieldset { border-color: #405d4e; }
+html[data-theme='dark'] legend,
+html[data-theme='dark'] .payroll-adjustment-editor legend { color: #d9e7df; }
+html[data-theme='dark'] .field-help { color: #9fc3ae; }
+html[data-theme='dark'] .field-error { color: #ff9b9b !important; }
+html[data-theme='dark'] .form-note { background: #1b3227 !important; border-color: #579270; color: #c9ddd1 !important; }
+html[data-theme='dark'] .profile-readonly-note { background: #352d1d; border-color: #b6923a; color: #f0d994; }
+
+html[data-theme='dark'] .main button:not(.theme-toggle):not(.link-danger):not(.table-sort):not(.schedule-slot):not(.day-arrow):not(.password-toggle):not(.break-mode-button):not(.consultation-mode-button):not(.payslip-edit-button):not(.credential-unlink),
+html[data-theme='dark'] .main .button {
+    background: #238258;
+    border-color: #3da071;
+    color: #fff;
+}
+html[data-theme='dark'] .main button:not(.theme-toggle):not(.link-danger):not(.table-sort):not(.schedule-slot):not(.day-arrow):not(.password-toggle):not(.break-mode-button):not(.consultation-mode-button):not(.payslip-edit-button):not(.credential-unlink):hover,
+html[data-theme='dark'] .main .button:hover { background: #2e996a; border-color: #55b182; color: #fff; }
+html[data-theme='dark'] .payslip-edit-button,
+html[data-theme='dark'] .day-arrow,
+html[data-theme='dark'] .break-mode-button,
+html[data-theme='dark'] .consultation-mode-button {
+    background: #1b3025;
+    border-color: #4b6a59;
+    color: #dbe9e1;
+}
+html[data-theme='dark'] .link-danger,
+html[data-theme='dark'] .credential-unlink { background: #321d1d; border-color: #744141; color: #ffabab; }
+html[data-theme='dark'] .actions a,
+html[data-theme='dark'] .form-actions a,
+html[data-theme='dark'] .panel a:not(.button) { color: #82d6aa; }
+html[data-theme='dark'] .table-sort { color: #d4e2da; }
+
+html[data-theme='dark'] .table-wrap { background: #15241c; border-color: #365044; }
+html[data-theme='dark'] table { background: #15241c; color: #e5eee8; }
+html[data-theme='dark'] th,
+html[data-theme='dark'] .dtr-table th { background: #20362a; border-color: #416050; color: #d3e4da; }
+html[data-theme='dark'] td { border-color: #304a3d; color: #dde9e2; }
+html[data-theme='dark'] td small,
+html[data-theme='dark'] .faculty-identity small { color: #a8bcb0; }
+html[data-theme='dark'] tbody tr:hover { background: #1d3127; }
+html[data-theme='dark'] .panel > .pagination,
+html[data-theme='dark'] .pagination a,
+html[data-theme='dark'] .pagination span { background: #17271f; border-color: #3c594a; color: #d0dfd7; }
+html[data-theme='dark'] .pagination a.active { background: #2a8d61; border-color: #48aa79; color: #fff; }
+
+html[data-theme='dark'] .payroll-item,
+html[data-theme='dark'] .dtr-time-grid > div,
+html[data-theme='dark'] .dtr-summary-grid > div,
+html[data-theme='dark'] .dtr-schedule-strip { border-color: #365044; }
+html[data-theme='dark'] .payroll-item:hover { background: #21372c; color: #9be0ba; }
+html[data-theme='dark'] .dtr-time-grid p,
+html[data-theme='dark'] .dtr-summary-grid span,
+html[data-theme='dark'] .dtr-schedule-strip > span,
+html[data-theme='dark'] .dtr-schedule-strip small { color: #abc0b4; }
+html[data-theme='dark'] .dtr-summary-grid strong { color: #eff6f2; }
+html[data-theme='dark'] :is(.dtr-state, .dtr-table-status).is-active,
+html[data-theme='dark'] :is(.dtr-state, .dtr-table-status).is-complete { background: #193c2b; border-color: #397a56; color: #a4e7c0; }
+html[data-theme='dark'] :is(.dtr-state, .dtr-table-status).is-warning { background: #3c3019; border-color: #886d2c; color: #f3d886; }
+html[data-theme='dark'] :is(.dtr-state, .dtr-table-status).is-pending { background: #26312b; border-color: #4d6257; color: #c8d5ce; }
+
+html[data-theme='dark'] .timetable-wrap,
+html[data-theme='dark'] .timetable,
+html[data-theme='dark'] .timetable-row,
+html[data-theme='dark'] .day-navigator { background: #13221a; border-color: #3b5748; color: #dce9e1; }
+html[data-theme='dark'] .timetable-header,
+html[data-theme='dark'] .time-label { background: #20362a; border-color: #3b5748; color: #c8d9cf; }
+html[data-theme='dark'] .schedule-slot { background: #101d17; border-color: #344d40; }
+html[data-theme='dark'] .settings-tabs { border-color: #365044; }
+html[data-theme='dark'] .settings-tabs a { color: #b9cec2; }
+html[data-theme='dark'] .settings-tabs a:hover { background: #1d3328; color: #fff; }
+html[data-theme='dark'] .settings-tabs a.active { background: #dcebe2; color: #092719; }
+
+html[data-theme='dark'] .alert.success,
+html[data-theme='dark'] .email-verification-reminder,
+html[data-theme='dark'] .temporary-credentials { background: #173426; border-color: #3f7559; color: #ccebd9; }
+html[data-theme='dark'] .alert.error,
+html[data-theme='dark'] .credential-enrollment-error { background: #3a2020; border-color: #874848; color: #ffc0c0; }
+html[data-theme='dark'] .contract-warning,
+html[data-theme='dark'] .password-change-reminder,
+html[data-theme='dark'] .faculty-temporary-credentials { background: #3a301b; border-color: #95772f; color: #f4dda0; }
+html[data-theme='dark'] .contract-warning :is(strong, span, a),
+html[data-theme='dark'] .password-change-reminder :is(strong, span, a),
+html[data-theme='dark'] .faculty-temporary-credentials :is(strong, span, small) { color: #f4dda0; }
+html[data-theme='dark'] .temporary-credentials code,
+html[data-theme='dark'] .faculty-temporary-credentials code { background: #18271f; border-color: #61734b; color: #fff2bd; }
+
+/* Mobile: separate, continuously visible branding, header, and navigation. */
+@media (max-width: 900px) {
+    :root {
+        --mobile-brand-height: 76px;
+        --mobile-header-height: 82px;
+        --mobile-nav-height: 58px;
+    }
+    .sidebar,
+    .sidebar.is-collapsed,
+    .sidebar-toggle { display: none !important; }
+    .mobile-branding {
+        align-items: center;
+        background: var(--cvsu-deep);
+        border-top: 4px solid var(--cvsu-gold);
+        display: flex;
+        height: var(--mobile-brand-height);
+        justify-content: space-between;
+        left: 0;
+        padding: 8px 18px;
+        position: sticky;
+        right: 0;
+        top: 0;
+        width: 100%;
+        z-index: 70;
+    }
+    .mobile-branding-identity { align-items: center; display: flex; gap: 10px; min-width: 0; }
+    .mobile-branding-identity img { background: transparent; border: 0; flex: 0 0 auto; height: 46px; object-fit: contain; width: 46px; }
+    .mobile-branding-identity > span { display: grid; line-height: 1.05; min-width: 0; }
+    .mobile-branding-identity small { color: #b9d1c3; font-size: 8px; text-transform: uppercase; }
+    .mobile-branding-identity strong { color: #fff; font-size: 16px; margin-top: 3px; }
+    .mobile-branding-identity b { color: var(--cvsu-gold); font-size: 9px; margin-top: 4px; text-transform: uppercase; }
+    .mobile-logout {
+        align-items: center;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        color: #fff;
+        display: inline-flex;
+        flex: 0 0 auto;
+        gap: 7px;
+        min-height: 38px;
+        padding: 7px 11px;
+    }
+    .main,
+    .main.sidebar-collapsed { margin-left: 0; padding: 0 18px 28px; width: 100%; }
+    .topbar,
+    .main.sidebar-collapsed .topbar {
+        height: var(--mobile-header-height);
+        margin: 0 -18px !important;
+        min-height: var(--mobile-header-height);
+        padding: 11px 18px;
+        position: sticky;
+        top: var(--mobile-brand-height);
+        width: calc(100% + 36px) !important;
+        z-index: 60;
+    }
+    .mobile-navigation {
+        height: var(--mobile-nav-height);
+        margin: 0 -18px 18px;
+        min-height: var(--mobile-nav-height);
+        padding: 7px 14px;
+        position: sticky;
+        top: calc(var(--mobile-brand-height) + var(--mobile-header-height));
+        width: calc(100% + 36px);
+        z-index: 50;
+    }
+    html[data-theme='dark'] .mobile-branding,
+    html[data-theme='dark'] .mobile-navigation { background: #07110c; border-color: #d6ad43; }
+    html[data-theme='dark'] .mobile-navigation a { color: #c9dacf; }
+    html[data-theme='dark'] .mobile-navigation a:hover { background: #1b3025; color: #fff; }
+    html[data-theme='dark'] .mobile-navigation a.active { background: #dcebe2; color: #092719; }
+    html[data-theme='dark'] .mobile-logout { border-color: #527060; color: #fff; }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --mobile-brand-height: 72px;
+        --mobile-header-height: 76px;
+        --mobile-nav-height: 56px;
+    }
+    .mobile-branding { padding-left: 14px; padding-right: 14px; }
+    .mobile-branding-identity img { height: 42px; width: 42px; }
+    .mobile-logout span { display: none; }
+    .mobile-logout { height: 38px; justify-content: center; padding: 0; width: 38px; }
+    .topbar,
+    .main.sidebar-collapsed .topbar { padding-left: 14px; padding-right: 14px; }
+}
+
+@media print {
+    body.printing-payslip .mobile-branding { display: none !important; }
+}

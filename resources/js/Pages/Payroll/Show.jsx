@@ -1,6 +1,6 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { Download, FilePenLine, Printer, Save } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 import useRealtimeReload from '../../hooks/useRealtimeReload';
 import { fullName } from '../../lib/format';
@@ -54,29 +54,15 @@ function PayslipRow({ label, value, emphasis = false, subrow = false }) {
     </div>;
 }
 
-function imageDataUrl(source) {
-    return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = image.naturalWidth;
-            canvas.height = image.naturalHeight;
-            canvas.getContext('2d').drawImage(image, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
-        };
-        image.onerror = reject;
-        image.src = source;
-    });
-}
-
 export default function PayrollShow({ record }) {
     const { auth } = usePage().props;
     const period = record.payroll_period;
     const employee = record.employee;
     const canManage = ['admin', 'payroll_staff'].includes(auth.user.role);
     const [editing, setEditing] = useState(false);
-    const [downloading, setDownloading] = useState(false);
-    useRealtimeReload(['record'], 10000, !editing && !downloading);
+    const [pdfAction, setPdfAction] = useState(null);
+    const payslipRef = useRef(null);
+    useRealtimeReload(['record'], 10000, !editing && !pdfAction);
     const cutoff = cutoffLabel(period?.start_date, period?.end_date);
     const employeeName = fullName(employee).toUpperCase();
     const totalEarnings = Number(record.total_earnings || record.gross_pay || 0);
@@ -92,101 +78,66 @@ export default function PayrollShow({ record }) {
         });
     };
 
-    const printPayslip = () => {
-        const cleanup = () => document.body.classList.remove('printing-payslip');
-        document.body.classList.add('printing-payslip');
-        window.addEventListener('afterprint', cleanup, { once: true });
-        window.print();
+    const createPayslipPdf = async () => {
+        const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+            import('html2canvas'),
+            import('jspdf'),
+        ]);
+        const canvas = await html2canvas(payslipRef.current, {
+            backgroundColor: '#ffffff',
+            logging: false,
+            scale: 2,
+            useCORS: true,
+            windowWidth: 1440,
+        });
+        const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const maximumWidth = 95;
+        const maximumHeight = 138.5;
+        let renderWidth = maximumWidth;
+        let renderHeight = renderWidth * (canvas.height / canvas.width);
+        if (renderHeight > maximumHeight) {
+            renderHeight = maximumHeight;
+            renderWidth = renderHeight * (canvas.width / canvas.height);
+        }
+        const x = 10 + ((maximumWidth - renderWidth) / 2);
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, 10, renderWidth, renderHeight, undefined, 'FAST');
+        return pdf;
+    };
+
+    const printPayslip = async () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            window.alert('Allow pop-ups for this site to print the payslip.');
+            return;
+        }
+        setPdfAction('print');
+        try {
+            const pdf = await createPayslipPdf();
+            pdf.autoPrint();
+            printWindow.location.href = pdf.output('bloburl');
+        } catch (error) {
+            printWindow.close();
+            throw error;
+        } finally {
+            setPdfAction(null);
+        }
     };
 
     const download = async () => {
-        setDownloading(true);
+        setPdfAction('download');
         try {
-            const { jsPDF } = await import('jspdf');
-            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-            const logo = await imageDataUrl('/images/cvsu-logo.png');
-            const x = 15;
-            const width = 180;
-            const center = 105;
-            const divider = 105;
-            const right = x + width;
-            const text = (value, tx, ty, options = {}) => pdf.text(String(value ?? '-'), tx, ty, options);
-            const pair = (label, value, y, left = x + 3, valueX = divider - 3) => {
-                pdf.setFont('helvetica', 'normal');
-                text(label, left, y);
-                pdf.setFont('helvetica', 'bold');
-                text(value, valueX, y, { align: 'right' });
-            };
-
-            pdf.setDrawColor(20, 46, 37);
-            pdf.setLineWidth(0.45);
-            pdf.rect(x, 12, width, 166);
-            pdf.addImage(logo, 'PNG', x + 7, 18, 18, 18);
-            pdf.setTextColor(20, 46, 37);
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(12);
-            text('CAVITE STATE UNIVERSITY', center, 18, { align: 'center' });
-            pdf.setFontSize(10);
-            text('Imus Campus', center, 23, { align: 'center' });
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(8.5);
-            text('Cavite Civic Center, Palico IV, Imus, Cavite', center, 28, { align: 'center' });
-            text('(046) 471-66-07 / (046) 686-2349', center, 33, { align: 'center' });
-            text('www.cvsu.edu.ph', center, 38, { align: 'center' });
-
-            pdf.setTextColor(20, 20, 20);
-            pdf.setFontSize(8.5);
-            [['Employee Name:', employeeName], ['Employee ID No.:', employee?.employee_no || '-'], ['Department:', employee?.department || '-'], ['Cut-off Date:', cutoff]].forEach(([label, value], index) => {
-                const y = 46 + (index * 5);
-                pdf.setFont('helvetica', 'normal'); text(label, x + 3, y);
-                pdf.setFont('helvetica', 'bold'); text(value, x + 46, y);
-            });
-            pdf.line(x, 64, right, 64);
-            pdf.line(divider, 64, divider, 147);
-            pdf.setFontSize(7.8);
-            [['RATE PER HOUR', amount(employee?.rate_amount, false)], ['TOTAL NO. OF HOURS', amount(record.total_hours_worked, false)], ['Overtime Pay', amount(record.overtime_pay)], ['Late/Undertime (mins.)', record.late_undertime_minutes || '-'], ['Absent (days)', Number(record.absent_days || 0) || '-'], ['Others', amount(record.other_earnings)], ['Increase', amount(record.increase_amount)]].forEach(([label, value], index) => pair(label, value, 70 + (index * 5)));
-            [['Withholding Tax', record.withholding_tax], ['GSIS', record.gsis_deduction], ['PhilHealth', record.philhealth_deduction], ['Pag-IBIG', record.pag_ibig_deduction], ['LOANS:', null], ['Multi-Purpose Loan', record.multi_purpose_loan], ['GSIS Loan', record.gsis_loan], ['GSIS ePlus Loan', record.gsis_eplus_loan], ['FEA Dues', record.fea_dues], ['OBA', record.oba_deduction], ['CRA', record.cra_deduction]].forEach(([label, value], index) => {
-                pdf.setFont('helvetica', label === 'LOANS:' ? 'bold' : 'normal');
-                text(label, divider + (index > 4 && index < 8 ? 6 : 3), 70 + (index * 5));
-                if (value !== null) {
-                    pdf.setFont('helvetica', 'bold');
-                    text(amount(value), right - 3, 70 + (index * 5), { align: 'right' });
-                }
-            });
-            pdf.line(x, 126, right, 126);
-            pair('Total Earnings:', amount(totalEarnings, false), 133);
-            pair('Total Deductions:', amount(record.total_deductions), 133, divider + 3, right - 3);
-            pdf.line(x, 137, right, 137);
-            pdf.setFontSize(10);
-            pair('Net Income:', amount(record.net_pay, false), 144, x + 3, right - 3);
-            pdf.line(x, 147, right, 147);
-            pdf.setFontSize(8.5);
-            [['TIN #', employee?.tin_no], ['GSIS #', employee?.gsis_no], ['Pag-IBIG #', employee?.pag_ibig_no], ['PhilHealth #', employee?.philhealth_no]].forEach(([label, value], index) => {
-                pdf.setFont('helvetica', 'normal'); text(label, x + 3, 153 + (index * 5));
-                pdf.setFont('helvetica', 'bold'); text(value || '-', x + 35, 153 + (index * 5));
-            });
-            pdf.setFontSize(8);
-            pdf.setFont('helvetica', 'bold');
-            text('PREPARED BY:', 61, 195, { align: 'center' });
-            text('NOTED BY:', 154, 195, { align: 'center' });
-            pdf.line(35, 207, 87, 207);
-            pdf.line(128, 207, 180, 207);
-            text('CELINE JANE S. MAGSUMBOL', 61, 212, { align: 'center' });
-            text('ANALIN I. VASQUEZ', 154, 212, { align: 'center' });
-            pdf.setFont('helvetica', 'normal');
-            text('Admin Aide VI', 61, 217, { align: 'center' });
-            text('Admin Officer I', 154, 217, { align: 'center' });
+            const pdf = await createPayslipPdf();
             pdf.save(`payslip-${employee?.employee_no || record.id}-${period?.start_date || 'period'}.pdf`);
         } finally {
-            setDownloading(false);
+            setPdfAction(null);
         }
     };
 
     return <AppLayout title="Payslip" subtitle={`${period?.period_name || 'Payroll statement'} | Pay date: ${dateLabel(period?.pay_date)}`}>
         <div className="payslip-toolbar print-hidden">
             {canManage && <button type="button" className="payslip-edit-button" onClick={() => setEditing((value) => !value)}><FilePenLine size={17} />{editing ? 'Close editor' : 'Edit details'}</button>}
-            <button type="button" onClick={printPayslip}><Printer size={17} />Print</button>
-            <button type="button" onClick={download} disabled={downloading}><Download size={17} />{downloading ? 'Preparing...' : 'Download PDF'}</button>
+            <button type="button" onClick={printPayslip} disabled={Boolean(pdfAction)}><Printer size={17} />{pdfAction === 'print' ? 'Preparing...' : 'Print'}</button>
+            <button type="button" onClick={download} disabled={Boolean(pdfAction)}><Download size={17} />{pdfAction === 'download' ? 'Preparing...' : 'Download PDF'}</button>
         </div>
 
         {canManage && editing && <form className="payroll-adjustment-editor print-hidden" onSubmit={submit}>
@@ -196,7 +147,7 @@ export default function PayrollShow({ record }) {
             <div className="form-actions"><button type="submit" disabled={form.processing}><Save size={17} />{form.processing ? 'Saving...' : 'Save Payslip Details'}</button></div>
         </form>}
 
-        <article className="official-payslip">
+        <article className="official-payslip" ref={payslipRef}>
             <header className="official-payslip-header">
                 <img src="/images/cvsu-logo.png" alt="Cavite State University logo" />
                 <div><h2>Cavite State University</h2><strong>Imus Campus</strong><p>Cavite Civic Center, Palico IV, Imus, Cavite</p><p>(046) 471-66-07 / (046) 686-2349</p><a href="https://www.cvsu.edu.ph">www.cvsu.edu.ph</a></div>
