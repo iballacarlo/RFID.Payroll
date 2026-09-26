@@ -4488,6 +4488,54 @@ html[data-theme='dark'] .main .official-payslip :is(h1, h2, h3, h4, p, small, sp
     color-scheme: light;
 }
 
+/* Use the sidebar's deep green-black across the complete dark interface. */
+html[data-theme='dark'] body,
+html[data-theme='dark'] .main,
+html[data-theme='dark'] .topbar,
+html[data-theme='dark'] .sidebar,
+html[data-theme='dark'] .main .panel,
+html[data-theme='dark'] .main .content-grid > .panel,
+html[data-theme='dark'] .main .content-grid > .compact-form,
+html[data-theme='dark'] .main .form-grid,
+html[data-theme='dark'] .main .compact-form,
+html[data-theme='dark'] .main .schedule-page,
+html[data-theme='dark'] .main .settings-tool,
+html[data-theme='dark'] .main .add-rank-panel,
+html[data-theme='dark'] .main .test-attendance-panel,
+html[data-theme='dark'] .main .bento-panel,
+html[data-theme='dark'] .main .bento-metric,
+html[data-theme='dark'] .main .attendance-bento,
+html[data-theme='dark'] .main .payroll-bento,
+html[data-theme='dark'] .main .payroll-adjustment-editor,
+html[data-theme='dark'] .main .dtr-today,
+html[data-theme='dark'] .main .dtr-cutoff-section,
+html[data-theme='dark'] .main .dtr-history,
+html[data-theme='dark'] .main .table-wrap,
+html[data-theme='dark'] .main table,
+html[data-theme='dark'] .main .panel > :is(.table-wrap, .pagination),
+html[data-theme='dark'] .main .content-grid > .panel > .table-wrap {
+    background-color: #07110c !important;
+}
+html[data-theme='dark'] .topbar,
+html[data-theme='dark'] .main :is(.panel, .form-grid, .compact-form, .schedule-page, .settings-tool, .add-rank-panel, .test-attendance-panel, .bento-panel, .bento-metric, .attendance-bento, .payroll-bento, .payroll-adjustment-editor, .dtr-today, .dtr-cutoff-section, .dtr-history, .table-wrap) {
+    border-color: #294336 !important;
+}
+html[data-theme='dark'] .main th,
+html[data-theme='dark'] .main .dtr-table th,
+html[data-theme='dark'] .main :is(.phone-input, .email-input, .currency-input, .rate-input) > span {
+    background-color: #102119 !important;
+}
+html[data-theme='dark'] .main :is(input, select, textarea),
+html[data-theme='dark'] .main .search-control,
+html[data-theme='dark'] .main .currency-input,
+html[data-theme='dark'] .main .rate-input {
+    background-color: #0a1710 !important;
+}
+html[data-theme='dark'] .main tbody tr:hover,
+html[data-theme='dark'] .main .payroll-item:hover,
+html[data-theme='dark'] .main .settings-tabs a:hover { background-color: #102119 !important; }
+html[data-theme='dark'] .main .official-payslip { background-color: #fff !important; }
+
 /* Mobile: separate, continuously visible branding, header, and navigation. */
 @media (max-width: 900px) {
     :root {
@@ -4584,4 +4632,51 @@ html[data-theme='dark'] .main .official-payslip :is(h1, h2, h3, h4, p, small, sp
 
 @media print {
     body.printing-payslip .mobile-branding { display: none !important; }
+}
+
+/* Keep the faculty DTR compact and contained on phones. */
+.faculty-dtr,
+.faculty-dtr > section,
+.dtr-live-copy,
+.dtr-today-heading > div,
+.dtr-section-heading > div,
+.dtr-history .table-wrap {
+    max-width: 100%;
+    min-width: 0;
+}
+.dtr-history { overflow: hidden; }
+.dtr-history .table-wrap {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    width: 100%;
+}
+.dtr-history .dtr-table { min-width: 720px; }
+
+@media (max-width: 700px) {
+    html,
+    body { max-width: 100%; overflow-x: hidden; }
+    .faculty-dtr { gap: 14px; overflow: hidden; }
+    .dtr-live-band { min-height: 0; }
+    .dtr-clock { padding-bottom: 2px; }
+    .dtr-today-heading,
+    .dtr-section-heading { flex-wrap: wrap; }
+    .dtr-time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dtr-time-grid > div {
+        min-height: 112px;
+        padding: 17px 13px;
+    }
+    .dtr-time-grid > div + div { border-left: 1px solid #d6e0da; }
+    .dtr-time-grid > div:nth-child(2) { border-top: 0; }
+    .dtr-time-grid > div:nth-child(3) { border-left: 0; border-top: 1px solid #d6e0da; }
+    .dtr-time-grid > div:nth-child(4) { border-top: 1px solid #d6e0da; }
+    .dtr-time-icon { height: 32px; right: 12px; top: 14px; width: 32px; }
+    .dtr-time-grid strong { font-size: 20px; }
+    .dtr-time-grid p { max-width: calc(100% - 36px); }
+    .dtr-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dtr-summary-grid > div { min-width: 0; }
+    .dtr-summary-grid strong { font-size: 21px; overflow-wrap: anywhere; }
+    .dtr-history .table-wrap { margin-top: 14px; }
+    html[data-theme='dark'] .dtr-time-grid > div + div,
+    html[data-theme='dark'] .dtr-time-grid > div:nth-child(3),
+    html[data-theme='dark'] .dtr-time-grid > div:nth-child(4) { border-color: #294336; }
 }

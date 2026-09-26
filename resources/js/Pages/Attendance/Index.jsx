@@ -1,5 +1,5 @@
 import { useForm, usePage } from '@inertiajs/react';
-import { CalendarDays, CalendarRange, CheckCircle2, Clock3, LogIn, LogOut, Radio, RefreshCw, TimerReset } from 'lucide-react';
+import { CalendarDays, CalendarRange, CheckCircle2, Clock3, LogIn, LogOut, Radio, TimerReset } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 import Pagination from '../../components/Pagination';
@@ -30,7 +30,7 @@ function statusClass(log) {
     return ['late', 'undertime', 'incomplete'].includes(log.status) ? 'is-warning' : 'is-complete';
 }
 
-function FacultyDtr({ dtr, logs, refreshing }) {
+function FacultyDtr({ dtr, logs }) {
     const { auth } = usePage().props;
     const [clock, setClock] = useState(new Date());
     const today = dtr?.today_log;
@@ -55,7 +55,7 @@ function FacultyDtr({ dtr, logs, refreshing }) {
                 <h2>{fullName(auth.user.employee)}</h2>
                 <p>{auth.user.employee?.employee_no} <i></i> {auth.user.employee?.department || 'Cavite State University - Imus Campus'}</p>
             </div>
-            <div className="dtr-clock" aria-label="Current Philippine time"><strong>{clockTime}</strong><span>{clockDate}</span><small className={refreshing ? 'is-refreshing' : ''}><RefreshCw size={12} />{refreshing ? 'Syncing records' : 'Updates every 5 seconds'}</small></div>
+            <div className="dtr-clock" aria-label="Current Philippine time"><strong>{clockTime}</strong><span>{clockDate}</span></div>
         </section>
 
         <section className="dtr-today" aria-label="Today attendance status">
@@ -112,8 +112,8 @@ function StaffAttendance({ employees, logs }) {
 export default function AttendanceIndex({ employees, logs, dtr }) {
     const { auth } = usePage().props;
     const isFaculty = auth.user.role === 'faculty';
-    const refreshing = useRealtimeReload(isFaculty ? ['logs', 'dtr'] : ['logs'], 5000);
+    useRealtimeReload(isFaculty ? ['logs', 'dtr'] : ['logs'], 5000);
     return <AppLayout title={isFaculty ? 'Online DTR' : 'Attendance'} subtitle={isFaculty ? 'Review your live time records and current cutoff totals.' : 'Record attendance through RFID, fingerprint code, or manual entry.'}>
-        {isFaculty ? <FacultyDtr dtr={dtr} logs={logs} refreshing={refreshing} /> : <StaffAttendance employees={employees} logs={logs} />}
+        {isFaculty ? <FacultyDtr dtr={dtr} logs={logs} /> : <StaffAttendance employees={employees} logs={logs} />}
     </AppLayout>;
 }
