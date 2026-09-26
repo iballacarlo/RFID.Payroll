@@ -4762,3 +4762,59 @@ html[data-theme='dark'] .main :is(input, select, textarea):focus {
     .mobile-navigation a > span:last-child { display: none; }
     .mobile-navigation .nav-icon { width: auto; }
 }
+
+/* Shared dark surfaces: deeper containers with clear, restrained separation. */
+html[data-theme='dark'] {
+    --dark-page: #030906;
+    --dark-surface: #09150f;
+    --dark-surface-deep: #050e09;
+    --dark-surface-raised: #102119;
+    --dark-border: #294336;
+}
+
+html[data-theme='dark'] body,
+html[data-theme='dark'] .main {
+    background-color: var(--dark-page) !important;
+}
+
+html[data-theme='dark'] .main :is(
+    .panel,
+    .stat-card,
+    .form-grid,
+    .compact-form,
+    .schedule-page,
+    .settings-tool,
+    .add-rank-panel,
+    .test-attendance-panel,
+    .bento-panel,
+    .bento-metric,
+    .attendance-bento,
+    .trend-bento,
+    .payroll-bento,
+    .payroll-adjustment-editor,
+    .dtr-live-band,
+    .dtr-today,
+    .dtr-cutoff-section,
+    .dtr-history
+) {
+    background-color: var(--dark-surface) !important;
+    border-color: var(--dark-border) !important;
+}
+
+html[data-theme='dark'] .main :is(
+    .table-wrap,
+    table,
+    .panel > .pagination,
+    .content-grid > .panel > .table-wrap
+) {
+    background-color: var(--dark-surface-deep) !important;
+}
+
+html[data-theme='dark'] .main :is(th, .dtr-table th, .timetable-header, .time-label),
+html[data-theme='dark'] .main :is(.phone-input, .email-input, .currency-input, .rate-input) > span {
+    background-color: var(--dark-surface-raised) !important;
+}
+
+html[data-theme='dark'] .main .official-payslip {
+    background-color: #fff !important;
+}

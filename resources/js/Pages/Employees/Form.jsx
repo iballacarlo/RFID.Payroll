@@ -98,7 +98,7 @@ export default function EmployeeForm({ employee, ranks, nextEmployeeNumber }) {
             }
         };
 
-        const timer = window.setInterval(checkStatus, 2000);
+        const timer = window.setInterval(checkStatus, 750);
         return () => window.clearInterval(timer);
     }, [enrollment?.id, enrollment?.status]);
 

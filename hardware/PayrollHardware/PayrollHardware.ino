@@ -35,9 +35,11 @@ unsigned long lastFingerprintScan = 0;
 unsigned long lastWiFiAttempt = 0;
 unsigned long fingerReleaseStarted = 0;
 unsigned long lastFingerprintReconnect = 0;
+uint16_t fingerprintCapacity = 127;
+uint16_t nextFingerprintSlotHint = 1;
 
 const unsigned long WIFI_RETRY_MS = 10000;
-const unsigned long ENROLLMENT_POLL_MS = 2000;
+const unsigned long ENROLLMENT_POLL_MS = 600;
 const unsigned long FINGER_RELEASE_TIMEOUT_MS = 5000;
 
 // Keep enrollment connected so requests from the faculty form reach the device.
@@ -193,8 +195,14 @@ void setupFingerprint() {
     }
   }
   if (fingerprintAvailable) {
-    finger.getParameters();
-    finger.getTemplateCount();
+    if (finger.getParameters() == FINGERPRINT_OK && finger.capacity > 0) {
+      fingerprintCapacity = finger.capacity;
+    }
+    if (finger.getTemplateCount() == FINGERPRINT_OK) {
+      nextFingerprintSlotHint = finger.templateCount < fingerprintCapacity
+        ? finger.templateCount + 1
+        : 1;
+    }
     Serial.println("AS608 fingerprint sensor detected.");
     Serial.println("Stored fingerprints: " + String(finger.templateCount));
   } else {
@@ -203,7 +211,7 @@ void setupFingerprint() {
 }
 
 bool reconnectFingerprint() {
-  if (fingerprintAvailable && finger.verifyPassword()) return true;
+  if (fingerprintAvailable) return true;
 
   showMessage("AS608 reconnect", "Please wait...");
   fingerprintAvailable = false;
@@ -214,8 +222,14 @@ bool reconnectFingerprint() {
   }
 
   if (fingerprintAvailable) {
-    finger.getParameters();
-    finger.getTemplateCount();
+    if (finger.getParameters() == FINGERPRINT_OK && finger.capacity > 0) {
+      fingerprintCapacity = finger.capacity;
+    }
+    if (finger.getTemplateCount() == FINGERPRINT_OK) {
+      nextFingerprintSlotHint = finger.templateCount < fingerprintCapacity
+        ? finger.templateCount + 1
+        : 1;
+    }
     Serial.println("AS608 reconnected. Stored fingerprints: " + String(finger.templateCount));
   }
 
@@ -246,18 +260,25 @@ int fingerprintSlot(String code) {
 }
 
 int findFreeFingerprintSlot() {
-  if (finger.getParameters() != FINGERPRINT_OK ||
-      finger.getTemplateCount() != FINGERPRINT_OK) {
+  if (finger.getTemplateCount() != FINGERPRINT_OK) {
+    fingerprintAvailable = false;
     Serial.println("Could not read AS608 storage information.");
     return -1;
   }
 
-  Serial.println("AS608 capacity: " + String(finger.capacity) +
+  int maximum = fingerprintCapacity > 0 ? fingerprintCapacity : 127;
+  int firstSlot = nextFingerprintSlotHint;
+  if (firstSlot < 1 || firstSlot > maximum) {
+    firstSlot = finger.templateCount < maximum ? finger.templateCount + 1 : 1;
+  }
+
+  Serial.println("AS608 capacity: " + String(maximum) +
                  ", stored: " + String(finger.templateCount));
-  int maximum = finger.capacity > 0 ? finger.capacity : 127;
-  for (int slot = 1; slot <= maximum; slot++) {
+  for (int offset = 0; offset < maximum; offset++) {
+    int slot = ((firstSlot - 1 + offset) % maximum) + 1;
     uint8_t result = finger.loadModel(slot);
     if (result == FINGERPRINT_DBRANGEFAIL || result == FINGERPRINT_NOTFOUND) {
+      nextFingerprintSlotHint = slot;
       Serial.println("Using free fingerprint slot " + String(slot) + ".");
       return slot;
     }
@@ -333,11 +354,17 @@ void enrollFingerprint(String id, String currentIdentifier) {
   String code = "FP-" + String(newSlot);
   if (sendEnrollmentResult(id, "completed", code, "")) {
     int oldSlot = fingerprintSlot(currentIdentifier);
-    if (oldSlot > 0 && oldSlot != newSlot) finger.deleteModel(oldSlot);
+    if (oldSlot > 0 && oldSlot != newSlot) {
+      finger.deleteModel(oldSlot);
+      nextFingerprintSlotHint = oldSlot;
+    } else {
+      nextFingerprintSlotHint = newSlot < fingerprintCapacity ? newSlot + 1 : 1;
+    }
     successSignal();
     showMessage("Fingerprint", "Registered");
   } else {
     finger.deleteModel(newSlot);
+    nextFingerprintSlotHint = newSlot;
     errorSignal();
     showMessage("Server rejected", "fingerprint");
   }
@@ -384,6 +411,7 @@ void enrollmentPollTask(void* parameter) {
       HTTPClient http;
       String url = String(API_BASE_URL) + "/enrollment";
       if (http.begin(enrollmentClient, url)) {
+        http.setReuse(true);
         http.setConnectTimeout(800);
         http.setTimeout(1500);
         addHardwareHeaders(http);
