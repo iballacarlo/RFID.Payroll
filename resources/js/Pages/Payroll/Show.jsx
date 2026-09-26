@@ -2,6 +2,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import { Download, FilePenLine, Printer, Save } from 'lucide-react';
 import { useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
+import useRealtimeReload from '../../hooks/useRealtimeReload';
 import { fullName } from '../../lib/format';
 
 const earningFields = [
@@ -75,6 +76,7 @@ export default function PayrollShow({ record }) {
     const canManage = ['admin', 'payroll_staff'].includes(auth.user.role);
     const [editing, setEditing] = useState(false);
     const [downloading, setDownloading] = useState(false);
+    useRealtimeReload(['record'], 10000, !editing && !downloading);
     const cutoff = cutoffLabel(period?.start_date, period?.end_date);
     const employeeName = fullName(employee).toUpperCase();
     const totalEarnings = Number(record.total_earnings || record.gross_pay || 0);

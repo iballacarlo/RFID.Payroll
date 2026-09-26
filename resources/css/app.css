@@ -2856,7 +2856,9 @@ button.schedule-slot:hover { background: #e5f0e9; }
 
 .login-nav-brand .brand-logos img {
     background: transparent;
+    border: 0;
     border-radius: 0;
+    box-shadow: none;
     height: 52px;
     object-fit: contain;
     width: 52px;
@@ -2870,7 +2872,14 @@ button.schedule-slot:hover { background: #e5f0e9; }
 .login-nav-brand strong { font-size: 18px; }
 .login-nav-brand span,
 .login-campus { color: #c4d6cc; font-size: 12px; }
-.login-campus { font-weight: 700; text-transform: uppercase; }
+.login-campus {
+    border-left: 1px solid rgba(255, 255, 255, 0.28);
+    flex-shrink: 0;
+    font-weight: 700;
+    margin-left: 48px;
+    padding: 8px 0 8px 28px;
+    text-transform: uppercase;
+}
 
 .login-hero {
     align-items: center;
@@ -2986,9 +2995,14 @@ button.schedule-slot:hover { background: #e5f0e9; }
 
 @media (max-width: 900px) {
     .login-page { padding: 0 24px 28px; }
+    .login-campus { margin-left: 28px; padding-left: 20px; }
     .login-hero { grid-template-columns: 1fr; padding: 52px 0; }
     .login-copy { max-width: 620px; }
     .login-auth { max-width: 520px; width: 100%; }
+}
+
+@media (max-width: 760px) {
+    .login-campus { display: none; }
 }
 
 @media (max-width: 600px) {
@@ -4137,6 +4151,91 @@ body { background: var(--cvsu-canvas); color: #1b2922; }
 .faculty-temporary-credentials span,
 .faculty-temporary-credentials small { font-size: 11px; overflow-wrap: anywhere; }
 .faculty-temporary-credentials code { background: #fff; border: 1px solid #d8c47e; color: #1f3e30; font-size: 13px; padding: 3px 6px; }
+
+/* Persistent light and dark application themes */
+.date-chip > span { display: grid; gap: 1px; }
+.date-chip small { color: #708279; font-size: 9px; font-weight: 700; }
+.theme-toggle {
+    align-items: center;
+    background: transparent;
+    border: 1px solid #bfd0c7;
+    border-radius: 50%;
+    color: var(--cvsu-deep);
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+}
+.theme-toggle:hover { background: #e5efe9; border-color: #8eac9c; box-shadow: none; color: #0c5b3b; transform: none; }
+
+html[data-theme='dark'] { color-scheme: dark; }
+html[data-theme='dark'] body { background: #0d1712; color: #dce8e1; }
+html[data-theme='dark'] .main { color: #dce8e1; }
+html[data-theme='dark'] .topbar { background: #14231b; border-bottom-color: #2d8a60; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); }
+html[data-theme='dark'] .topbar h1 { color: #f0f6f2; }
+html[data-theme='dark'] .topbar p,
+html[data-theme='dark'] .topbar .date-chip,
+html[data-theme='dark'] .date-chip small,
+html[data-theme='dark'] .topbar .user-copy small { color: #9db4a7; }
+html[data-theme='dark'] .topbar .user-chip { border-left-color: #345143; }
+html[data-theme='dark'] .topbar .user-copy strong { color: #edf5f0; }
+html[data-theme='dark'] .topbar .user-avatar { background: #d7aa38; color: #14231b; }
+html[data-theme='dark'] .theme-toggle { border-color: #3c5a4b; color: #f0ca63; }
+html[data-theme='dark'] .theme-toggle:hover { background: #20382b; border-color: #62816f; color: #ffe29a; }
+
+html[data-theme='dark'] .main :is(.panel, .form-grid, .schedule-page, .add-rank-panel, .test-attendance-panel, .bento-metric, .attendance-bento, .payroll-bento, .dtr-today, .dtr-cutoff-section, .dtr-history, .payroll-adjustment-editor) {
+    background: #17261f;
+    border-color: #304a3d;
+    color: #dce8e1;
+}
+html[data-theme='dark'] .main :is(.panel, .form-grid, .schedule-page, .bento-metric, .attendance-bento, .payroll-bento, .dtr-today, .dtr-cutoff-section, .dtr-history) :is(h2, h3, strong) { color: #edf5f0; }
+html[data-theme='dark'] .main :is(p, small, .empty-row, .form-note, .rate-unit) { color: #9fb2a7; }
+html[data-theme='dark'] .table-wrap { border-color: #304a3d; }
+html[data-theme='dark'] table { background: #17261f; color: #dce8e1; }
+html[data-theme='dark'] th { background: #20342a; border-color: #365344; color: #bdd2c5; }
+html[data-theme='dark'] td { border-color: #2d4539; color: #d6e3db; }
+html[data-theme='dark'] tbody tr:hover { background: #1d3027; }
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea { background: #0f1d17; border-color: #3a5748; color: #edf5f0; }
+html[data-theme='dark'] input[readonly],
+html[data-theme='dark'] .profile-form input[readonly],
+html[data-theme='dark'] .credential-row input[readonly],
+html[data-theme='dark'] .credential-row select:disabled { background: #1b2b23; color: #afc2b7; }
+html[data-theme='dark'] select option { background: #13221b; color: #edf5f0; }
+html[data-theme='dark'] label,
+html[data-theme='dark'] .field-label { color: #cfddd5; }
+html[data-theme='dark'] .panel-heading { border-color: #365143; }
+html[data-theme='dark'] .badge { background: #213b2e; border-color: #416451; color: #bde2cc; }
+html[data-theme='dark'] .pagination a,
+html[data-theme='dark'] .pagination span { background: #17261f; border-color: #395646; color: #bfd1c6; }
+html[data-theme='dark'] .pagination a:hover { background: #244033; color: #fff; }
+html[data-theme='dark'] .payroll-item { border-color: #304a3d; color: #dce8e1; }
+html[data-theme='dark'] .payroll-item:hover { background: #20352a; }
+html[data-theme='dark'] .metric-copy small,
+html[data-theme='dark'] .bento-eyebrow { color: #9fb5a8; }
+html[data-theme='dark'] .metric-copy strong,
+html[data-theme='dark'] .payroll-amount { color: #edf5f0; }
+html[data-theme='dark'] .contract-warning { background: #3b3018; border-color: #8d6d25; color: #f4dda0; }
+html[data-theme='dark'] .password-change-reminder { background: #3a301b; border-color: #8c702d; color: #f2d88e; }
+html[data-theme='dark'] .email-verification-reminder,
+html[data-theme='dark'] .temporary-credentials { background: #173126; border-color: #3f7559; color: #c8ead7; }
+html[data-theme='dark'] .official-payslip {
+    background: #fff;
+    color: #17231d;
+    color-scheme: light;
+}
+html[data-theme='dark'] .official-payslip p { color: #17231d; }
+html[data-theme='dark'] .official-payslip small { color: #53665c; }
+
+@media (max-width: 600px) {
+    .topbar .date-chip { display: inline-flex; font-size: 9px; gap: 5px; }
+    .topbar .date-chip > svg { display: none; }
+    .topbar .date-chip small { display: none; }
+    .theme-toggle { height: 34px; width: 34px; }
+}
 .faculty-temporary-credentials button { align-items: center; display: inline-flex; flex: 0 0 auto; gap: 7px; white-space: nowrap; }
 
 @media (max-width: 650px) {

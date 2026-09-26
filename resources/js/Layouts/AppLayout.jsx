@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, Settings2, ShieldCheck, UserRound, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, Moon, Settings2, ShieldCheck, Sun, UserRound, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { dateLabel, fullName } from '../lib/format';
+import { clockLabel, dateLabel, fullName } from '../lib/format';
 
 const navigation = [
     { label: 'Dashboard', group: 'Overview', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
@@ -19,13 +19,23 @@ export default function AppLayout({ title, subtitle, children }) {
     const { url } = page;
     const user = auth.user;
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [clock, setClock] = useState(new Date());
+    const [darkMode, setDarkMode] = useState(() => document.documentElement.dataset.theme === 'dark');
     useEffect(() => {
         setSidebarCollapsed(window.localStorage.getItem('sidebar-collapsed') === 'true');
+        const timer = window.setInterval(() => setClock(new Date()), 1000);
+        return () => window.clearInterval(timer);
     }, []);
     const toggleSidebar = () => {
         const next = !sidebarCollapsed;
         setSidebarCollapsed(next);
         window.localStorage.setItem('sidebar-collapsed', String(next));
+    };
+    const toggleTheme = () => {
+        const nextTheme = darkMode ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        window.localStorage.setItem('theme', nextTheme);
+        setDarkMode(!darkMode);
     };
     const availableNavigation = navigation.filter((item) => !item.roles || item.roles.includes(user.role));
     const navigationGroups = [...new Set(availableNavigation.map((item) => item.group))];
@@ -79,7 +89,8 @@ export default function AppLayout({ title, subtitle, children }) {
                         </div>
                     </div>
                     <div className="topbar-meta">
-                        <span className="date-chip"><CalendarDays size={16} />{dateLabel()}</span>
+                        <span className="date-chip"><CalendarDays size={16} /><span>{dateLabel(clock)}<small>{clockLabel(clock)}</small></span></span>
+                        <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={darkMode ? 'Use light mode' : 'Use dark mode'} title={darkMode ? 'Use light mode' : 'Use dark mode'}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
                         <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></Link>
                     </div>
                 </header>

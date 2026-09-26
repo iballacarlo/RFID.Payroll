@@ -1,7 +1,7 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { ArrowUpRight, CalendarCheck2, CalendarClock, Clock3, GraduationCap, Wallet } from 'lucide-react';
-import { useEffect } from 'react';
 import AppLayout from '../Layouts/AppLayout';
+import useRealtimeReload from '../hooks/useRealtimeReload';
 import { fullName, money, time12 } from '../lib/format';
 
 function MetricTile({ href, icon: Icon, label, value, tone }) {
@@ -16,23 +16,7 @@ export default function Dashboard({ employeeCount, presentToday, openPeriods, at
     const { auth } = usePage().props;
     const isFaculty = auth.user.role === 'faculty';
 
-    useEffect(() => {
-        const refreshDashboard = () => {
-            if (!document.hidden) {
-                router.reload({
-                    only: ['employeeCount', 'presentToday', 'openPeriods', 'attendanceTrend', 'latestPayrolls', 'recentAttendance', 'contractWarnings'],
-                    preserveScroll: true,
-                    preserveState: true,
-                });
-            }
-        };
-        const interval = window.setInterval(refreshDashboard, 30000);
-        document.addEventListener('visibilitychange', refreshDashboard);
-        return () => {
-            window.clearInterval(interval);
-            document.removeEventListener('visibilitychange', refreshDashboard);
-        };
-    }, []);
+    useRealtimeReload(['employeeCount', 'presentToday', 'openPeriods', 'attendanceTrend', 'latestPayrolls', 'recentAttendance', 'contractWarnings'], 5000);
 
     return <AppLayout title="Dashboard" subtitle={isFaculty ? 'Your attendance and payroll summary.' : 'Overview of faculty attendance and payroll activity.'}>
         {contractWarnings.length > 0 && <section className="contract-warning" role="status">

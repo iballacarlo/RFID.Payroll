@@ -1,8 +1,9 @@
-import { router, useForm, usePage } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, CalendarRange, CheckCircle2, Clock3, LogIn, LogOut, Radio, RefreshCw, TimerReset } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 import Pagination from '../../components/Pagination';
+import useRealtimeReload from '../../hooks/useRealtimeReload';
 import { dateToday, fullName, time12 } from '../../lib/format';
 
 function readableDate(value, options = {}) {
@@ -29,29 +30,15 @@ function statusClass(log) {
     return ['late', 'undertime', 'incomplete'].includes(log.status) ? 'is-warning' : 'is-complete';
 }
 
-function FacultyDtr({ dtr, logs }) {
+function FacultyDtr({ dtr, logs, refreshing }) {
     const { auth } = usePage().props;
     const [clock, setClock] = useState(new Date());
-    const [refreshing, setRefreshing] = useState(false);
     const today = dtr?.today_log;
     const summary = dtr?.summary || {};
 
     useEffect(() => {
         const clockTimer = window.setInterval(() => setClock(new Date()), 1000);
-        const pollTimer = window.setInterval(() => {
-            if (document.visibilityState !== 'visible') return;
-            setRefreshing(true);
-            router.reload({
-                only: ['logs', 'dtr'],
-                preserveScroll: true,
-                preserveState: true,
-                onFinish: () => setRefreshing(false),
-            });
-        }, 5000);
-        return () => {
-            window.clearInterval(clockTimer);
-            window.clearInterval(pollTimer);
-        };
+        return () => window.clearInterval(clockTimer);
     }, []);
 
     const clockTime = new Intl.DateTimeFormat('en-PH', {
@@ -125,7 +112,8 @@ function StaffAttendance({ employees, logs }) {
 export default function AttendanceIndex({ employees, logs, dtr }) {
     const { auth } = usePage().props;
     const isFaculty = auth.user.role === 'faculty';
+    const refreshing = useRealtimeReload(isFaculty ? ['logs', 'dtr'] : ['logs'], 5000);
     return <AppLayout title={isFaculty ? 'Online DTR' : 'Attendance'} subtitle={isFaculty ? 'Review your live time records and current cutoff totals.' : 'Record attendance through RFID, fingerprint code, or manual entry.'}>
-        {isFaculty ? <FacultyDtr dtr={dtr} logs={logs} /> : <StaffAttendance employees={employees} logs={logs} />}
+        {isFaculty ? <FacultyDtr dtr={dtr} logs={logs} refreshing={refreshing} /> : <StaffAttendance employees={employees} logs={logs} />}
     </AppLayout>;
 }

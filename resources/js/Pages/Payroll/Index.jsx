@@ -2,6 +2,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Calculator } from 'lucide-react';
 import AppLayout from '../../Layouts/AppLayout';
 import Pagination from '../../components/Pagination';
+import useRealtimeReload from '../../hooks/useRealtimeReload';
 import { fullName, money } from '../../lib/format';
 
 function expectedPayDate(startDate, endDate) {
@@ -54,6 +55,7 @@ export default function PayrollIndex({ periods, records }) {
     const canManage = auth.user.role !== 'faculty';
     const form = useForm({ period_name: '', start_date: '', end_date: '', pay_date: '' });
     const payDate = expectedPayDate(form.data.start_date, form.data.end_date);
+    useRealtimeReload(['periods', 'records'], 10000);
 
     const submit = (event) => {
         event.preventDefault();

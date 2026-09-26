@@ -19,6 +19,10 @@ export const time12 = (value) => {
 
 export const dateToday = () => new Date().toISOString().slice(0, 10);
 
-export const dateLabel = () => new Intl.DateTimeFormat('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
-}).format(new Date());
+export const dateLabel = (date = new Date()) => new Intl.DateTimeFormat('en-PH', {
+    weekday: 'long', month: 'short', day: 'numeric', year: 'numeric',
+}).format(date);
+
+export const clockLabel = (date = new Date()) => new Intl.DateTimeFormat('en-PH', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+}).format(date);
