@@ -4818,3 +4818,52 @@ html[data-theme='dark'] .main :is(.phone-input, .email-input, .currency-input, .
 html[data-theme='dark'] .main .official-payslip {
     background-color: #fff !important;
 }
+
+/* Attendance pulse remains readable without becoming a bright dark-mode block. */
+html:not([data-theme='dark']) .trend-bento .bento-eyebrow {
+    color: #f4dda0;
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 1;
+}
+
+html[data-theme='dark'] .main .trend-bento {
+    background-color: #07110c !important;
+    border-color: #294336 !important;
+    border-top-color: #8a763d !important;
+    color: #dce7e0 !important;
+}
+
+html[data-theme='dark'] .trend-bento .bento-heading h2,
+html[data-theme='dark'] .trend-bento .trend-value {
+    color: #e7eee9 !important;
+}
+
+html[data-theme='dark'] .trend-bento .bento-eyebrow {
+    color: #c8b97f !important;
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 1;
+}
+
+html[data-theme='dark'] .trend-bento .trend-icon {
+    background: #14251c;
+    border: 1px solid #365044;
+    color: #c8d5cd;
+}
+
+html[data-theme='dark'] .trend-bento .trend-column i {
+    background: #778d80;
+}
+
+html[data-theme='dark'] .trend-bento .trend-column:nth-child(3n) i {
+    background: #8a7848;
+}
+
+html[data-theme='dark'] .trend-bento .trend-column:nth-child(4n) i {
+    background: #526d5f;
+}
+
+html[data-theme='dark'] .trend-bento .trend-column small {
+    color: #aebfb5;
+}
