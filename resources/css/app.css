@@ -4424,6 +4424,70 @@ html[data-theme='dark'] .faculty-temporary-credentials :is(strong, span, small) 
 html[data-theme='dark'] .temporary-credentials code,
 html[data-theme='dark'] .faculty-temporary-credentials code { background: #18271f; border-color: #61734b; color: #fff2bd; }
 
+/* Final contrast guardrails for shared application surfaces. */
+html[data-theme='dark'] .main .panel,
+html[data-theme='dark'] .main .content-grid > .panel,
+html[data-theme='dark'] .main .content-grid > .compact-form,
+html[data-theme='dark'] .main .panel:not(.form-grid):not(.compact-form):not(.schedule-page):not(.form-note),
+html[data-theme='dark'] .main .form-grid,
+html[data-theme='dark'] .main .compact-form,
+html[data-theme='dark'] .main .schedule-page,
+html[data-theme='dark'] .main .settings-tool,
+html[data-theme='dark'] .main .add-rank-panel,
+html[data-theme='dark'] .main .test-attendance-panel,
+html[data-theme='dark'] .main .bento-panel,
+html[data-theme='dark'] .main .bento-metric,
+html[data-theme='dark'] .main .attendance-bento,
+html[data-theme='dark'] .main .payroll-bento,
+html[data-theme='dark'] .main .payroll-adjustment-editor,
+html[data-theme='dark'] .main .dtr-today,
+html[data-theme='dark'] .main .dtr-cutoff-section,
+html[data-theme='dark'] .main .dtr-history {
+    background: #15241c !important;
+    border-color: #365044 !important;
+    color: #e5eee8 !important;
+}
+html[data-theme='dark'] .main :is(.panel, .compact-form, .form-grid, .schedule-page, .settings-tool, .add-rank-panel, .test-attendance-panel, .bento-panel, .bento-metric, .attendance-bento, .payroll-bento, .payroll-adjustment-editor, .dtr-today, .dtr-cutoff-section, .dtr-history) :is(h1, h2, h3, h4, legend, strong) {
+    color: #f3f7f4 !important;
+}
+html[data-theme='dark'] .main :is(.panel, .compact-form, .form-grid, .schedule-page, .settings-tool, .add-rank-panel, .test-attendance-panel, .bento-panel, .bento-metric, .attendance-bento, .payroll-bento, .payroll-adjustment-editor, .dtr-today, .dtr-cutoff-section, .dtr-history) :is(p, small, .form-note, .rate-unit) {
+    color: #b5c8bd !important;
+}
+html[data-theme='dark'] .main .test-attendance-panel :is(label, p),
+html[data-theme='dark'] .main .test-attendance-form label { color: #c9d9d0 !important; }
+html[data-theme='dark'] .main .panel > :is(.table-wrap, .pagination),
+html[data-theme='dark'] .main .content-grid > .panel > .table-wrap {
+    background: #111e17 !important;
+    border-color: #365044 !important;
+}
+html[data-theme='dark'] .main :is(input, select, textarea) {
+    background-color: #0d1a14 !important;
+    border-color: #486556 !important;
+    color: #f1f6f3 !important;
+    -webkit-text-fill-color: #f1f6f3;
+}
+html[data-theme='dark'] .main :is(input, select, textarea):disabled,
+html[data-theme='dark'] .main input[readonly] {
+    background-color: #1b2b23 !important;
+    color: #b9cbc1 !important;
+    -webkit-text-fill-color: #b9cbc1;
+    opacity: 1;
+}
+html[data-theme='dark'] .main select option { background: #0d1a14; color: #f1f6f3; }
+html[data-theme='dark'] .main :is(label, .field-label, .faculty-filters label, .payroll-editor-grid label) { color: #d7e4dc !important; }
+html[data-theme='dark'] .main :is(.badge, .email-status, .credential-enrollment-status) { filter: none; }
+html[data-theme='dark'] .main .email-status.is-verified { color: #83ddad; }
+html[data-theme='dark'] .main .email-status.is-pending { color: #f0cd78; }
+html[data-theme='dark'] .main .credential-enrollment-status.is-failed,
+html[data-theme='dark'] .main .credential-enrollment-status.is-expired { background: #3a2020; border-color: #874848; color: #ffc0c0; }
+html[data-theme='dark'] .main .credential-enrollment-status.is-cancelled { background: #27332d; border-color: #50635a; color: #d1ddd6; }
+html[data-theme='dark'] .main .history-delete { background: #4a3b16; border-color: #a78632; color: #ffe39a; }
+html[data-theme='dark'] .main .history-delete:hover { background: #5b481a; color: #fff0bd; }
+html[data-theme='dark'] .main .official-payslip,
+html[data-theme='dark'] .main .official-payslip :is(h1, h2, h3, h4, p, small, span, strong, a) {
+    color-scheme: light;
+}
+
 /* Mobile: separate, continuously visible branding, header, and navigation. */
 @media (max-width: 900px) {
     :root {
@@ -4455,6 +4519,8 @@ html[data-theme='dark'] .faculty-temporary-credentials code { background: #18271
     .mobile-branding-identity small { color: #b9d1c3; font-size: 8px; text-transform: uppercase; }
     .mobile-branding-identity strong { color: #fff; font-size: 16px; margin-top: 3px; }
     .mobile-branding-identity b { color: var(--cvsu-gold); font-size: 9px; margin-top: 4px; text-transform: uppercase; }
+    .mobile-branding-actions { align-items: center; display: flex; flex: 0 0 auto; gap: 8px; }
+    .mobile-theme-toggle,
     .mobile-logout {
         align-items: center;
         background: transparent;
@@ -4466,35 +4532,40 @@ html[data-theme='dark'] .faculty-temporary-credentials code { background: #18271
         min-height: 38px;
         padding: 7px 11px;
     }
+    .mobile-theme-toggle { border-radius: 50%; height: 38px; justify-content: center; padding: 0; width: 38px; }
     .main,
     .main.sidebar-collapsed { margin-left: 0; padding: 0 18px 28px; width: 100%; }
     .topbar,
     .main.sidebar-collapsed .topbar {
-        height: var(--mobile-header-height);
-        margin: 0 -18px !important;
+        background: transparent;
+        border-bottom: 0;
+        box-shadow: none;
+        height: auto;
+        margin: 22px 0 18px !important;
         min-height: var(--mobile-header-height);
-        padding: 11px 18px;
-        position: sticky;
-        top: var(--mobile-brand-height);
-        width: calc(100% + 36px) !important;
-        z-index: 60;
+        padding: 0;
+        position: static;
+        width: 100% !important;
     }
     .mobile-navigation {
         height: var(--mobile-nav-height);
-        margin: 0 -18px 18px;
+        margin: 0 -18px;
         min-height: var(--mobile-nav-height);
         padding: 7px 14px;
         position: sticky;
-        top: calc(var(--mobile-brand-height) + var(--mobile-header-height));
+        top: var(--mobile-brand-height);
         width: calc(100% + 36px);
-        z-index: 50;
+        z-index: 60;
     }
     html[data-theme='dark'] .mobile-branding,
     html[data-theme='dark'] .mobile-navigation { background: #07110c; border-color: #d6ad43; }
     html[data-theme='dark'] .mobile-navigation a { color: #c9dacf; }
     html[data-theme='dark'] .mobile-navigation a:hover { background: #1b3025; color: #fff; }
     html[data-theme='dark'] .mobile-navigation a.active { background: #dcebe2; color: #092719; }
+    html[data-theme='dark'] .mobile-theme-toggle,
     html[data-theme='dark'] .mobile-logout { border-color: #527060; color: #fff; }
+    html[data-theme='dark'] .topbar { background: transparent; }
+    .topbar .theme-toggle { display: none; }
 }
 
 @media (max-width: 600px) {
@@ -4508,7 +4579,7 @@ html[data-theme='dark'] .faculty-temporary-credentials code { background: #18271
     .mobile-logout span { display: none; }
     .mobile-logout { height: 38px; justify-content: center; padding: 0; width: 38px; }
     .topbar,
-    .main.sidebar-collapsed .topbar { padding-left: 14px; padding-right: 14px; }
+    .main.sidebar-collapsed .topbar { margin-bottom: 16px !important; margin-top: 18px !important; }
 }
 
 @media print {

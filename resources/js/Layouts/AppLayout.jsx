@@ -84,10 +84,21 @@ export default function AppLayout({ title, subtitle, children }) {
                     <img src="/images/cvsu-logo.png" alt="Cavite State University logo" />
                     <span><small>Cavite State University</small><strong>Imus Campus</strong><b>DCS Payroll</b></span>
                 </div>
-                <button className="mobile-logout" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
+                <div className="mobile-branding-actions">
+                    <button className="mobile-theme-toggle" type="button" onClick={toggleTheme} aria-label={darkMode ? 'Use light mode' : 'Use dark mode'} title={darkMode ? 'Use light mode' : 'Use dark mode'}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+                    <button className="mobile-logout" type="button" onClick={logout} aria-label="Logout"><LogOut size={17} /><span>Logout</span></button>
+                </div>
             </div>
             <button className={`sidebar-toggle${sidebarCollapsed ? ' is-collapsed' : ''}`} type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}>{sidebarCollapsed ? <ChevronRight size={18} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={18} strokeWidth={2.5} aria-hidden="true" />}</button>
             <main className={`main module-${module}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+                <nav className="mobile-navigation" aria-label="Mobile navigation">
+                    {availableNavigation.map((item) => (
+                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
+                            <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
+                            <span>{item.label}</span>
+                        </Link>
+                    ))}
+                </nav>
                 <header className="topbar">
                     <div className="editorial-heading">
                         <div>
@@ -101,14 +112,6 @@ export default function AppLayout({ title, subtitle, children }) {
                         <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></Link>
                     </div>
                 </header>
-                <nav className="mobile-navigation" aria-label="Mobile navigation">
-                    {availableNavigation.map((item) => (
-                        <Link key={item.href} href={item.href} className={`${item.tone}${item.active(url) ? ' active' : ''}`} aria-current={item.active(url) ? 'page' : undefined}>
-                            <span className="nav-icon"><item.icon size={18} strokeWidth={1.8} /></span>
-                            <span>{item.label}</span>
-                        </Link>
-                    ))}
-                </nav>
                 {user.must_change_password && <section className="password-change-reminder" role="status"><KeyRound size={20} /><div><strong>Change your temporary password</strong><span>Your account is still using the temporary password issued by the administrator.</span></div><Link href="/profile">Change password</Link></section>}
                 {user.role === 'faculty' && !user.email_verified && <section className="email-verification-reminder" role="status"><MailWarning size={20} /><div><strong>Verify your email address</strong><span>Open the verification link sent to {user.email}. This confirms that the address belongs to you.</span></div><button type="button" onClick={() => router.post('/email/verification-notification', {}, { preserveScroll: true })}>Resend link</button></section>}
                 {flash?.success && <div className="alert success">{flash.success}</div>}
