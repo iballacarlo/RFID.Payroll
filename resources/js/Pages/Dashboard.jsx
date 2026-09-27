@@ -14,8 +14,8 @@ function MetricTile({ href, icon: Icon, label, value, tone }) {
 
 function AcademicTermCard({ icon: Icon, label, value, tone }) {
     return <article className={`academic-term-card ${tone}`}>
-        <span className="academic-term-copy"><small>{label}</small><strong>{value || '-'}</strong></span>
         <span className="academic-term-icon"><Icon size={21} strokeWidth={1.8} /></span>
+        <span className="academic-term-copy"><small>{label}</small><strong>{value || '-'}</strong></span>
     </article>;
 }
 

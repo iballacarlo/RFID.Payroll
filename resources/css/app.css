@@ -5450,54 +5450,62 @@ html[data-theme='dark'] .dialog-actions .dialog-cancel { background: #1b3025 !im
 /* Academic context belongs on the dashboard, where it remains easy to scan. */
 .academic-term-summary {
     display: grid;
-    gap: 16px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 24px;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(240px, 320px));
+    justify-content: start;
+    margin: 0 auto 12px;
+    max-width: 1480px;
+    width: 100%;
 }
 
 .academic-term-card {
     align-items: center;
     background: #fff;
-    border: 1px solid #cfddd5;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    min-height: 94px;
-    padding: 18px 20px;
+    border: 1px solid #d4dfd8;
+    border-radius: 8px;
+    border-top: 4px solid #176b46;
+    display: grid;
+    gap: 13px;
+    grid-template-columns: 42px minmax(0, 1fr);
+    min-height: 112px;
+    padding: 22px;
 }
 
 .academic-term-copy {
     display: grid;
-    gap: 6px;
+    gap: 2px;
     min-width: 0;
 }
 
 .academic-term-copy small {
-    color: #5e7167;
-    font-size: 13px;
-    font-weight: 700;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .academic-term-copy strong {
-    color: #102c20;
-    font-size: 23px;
-    line-height: 1.1;
+    color: var(--ink);
+    font-size: 26px;
+    line-height: 1;
 }
 
 .academic-term-icon {
     align-items: center;
-    background: #e2f0e8;
-    color: #126b49;
+    background: #e6f1eb;
+    border-radius: 7px;
+    color: var(--green);
     display: flex;
-    flex: 0 0 46px;
-    height: 46px;
+    height: 42px;
     justify-content: center;
+    width: 42px;
 }
 
 .academic-semester .academic-term-icon {
-    background: #f7e9bd;
-    color: #76540e;
+    background: #fff1dc;
+    color: #9b651f;
 }
+
+.academic-term-summary + .bento-dashboard { padding-top: 12px; }
 
 html[data-theme='dark'] .academic-term-card {
     background: #102019;
@@ -5513,12 +5521,12 @@ html[data-theme='dark'] .academic-semester .academic-term-icon { background: #3b
     .academic-term-summary {
         gap: 10px;
         grid-template-columns: 1fr;
-        margin-bottom: 18px;
+        margin-bottom: 8px;
     }
 
     .academic-term-card {
-        min-height: 82px;
-        padding: 14px 16px;
+        min-height: 96px;
+        padding: 18px;
     }
 
     .academic-term-copy strong { font-size: 20px; }
