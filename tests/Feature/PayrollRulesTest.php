@@ -81,7 +81,7 @@ class PayrollRulesTest extends TestCase
 
     public function test_payroll_period_sets_pay_date_from_cutoff(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $this->actingAs(User::factory()->create(['role' => 'payroll_staff']));
 
         $response = $this->post(route('payroll.periods.store'), [
             'period_name' => 'September 16-30, 2026',
@@ -99,7 +99,7 @@ class PayrollRulesTest extends TestCase
 
     public function test_payroll_period_rejects_dates_outside_allowed_cutoffs(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $this->actingAs(User::factory()->create(['role' => 'payroll_staff']));
 
         $response = $this->from(route('payroll.index'))->post(route('payroll.periods.store'), [
             'period_name' => 'Bad cutoff',
@@ -132,7 +132,7 @@ class PayrollRulesTest extends TestCase
             'status' => 'open',
         ]);
 
-        $this->actingAs(User::factory()->create(['role' => 'admin']))
+        $this->actingAs(User::factory()->create(['role' => 'payroll_staff']))
             ->post(route('payroll.generate', $period))
             ->assertSessionHasNoErrors();
 
@@ -165,7 +165,7 @@ class PayrollRulesTest extends TestCase
             'status' => 'open',
         ]);
 
-        $this->actingAs(User::factory()->create(['role' => 'admin']))
+        $this->actingAs(User::factory()->create(['role' => 'payroll_staff']))
             ->post(route('payroll.generate', $period))
             ->assertSessionHasNoErrors();
 
@@ -215,6 +215,26 @@ class PayrollRulesTest extends TestCase
         $this->assertSame(11000.0, (float) $record->total_earnings);
         $this->assertSame(1800.0, (float) $record->total_deductions);
         $this->assertSame(9200.0, (float) $record->net_pay);
+    }
+
+    public function test_admin_cannot_create_payroll_periods(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->post(route('payroll.periods.store'), [
+                'period_name' => 'September 1-15, 2026',
+                'start_date' => '2026-09-01',
+                'end_date' => '2026-09-15',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(0, PayrollPeriod::count());
+    }
+
+    public function test_admin_cannot_create_manual_attendance(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->post(route('attendance.manual'), [])
+            ->assertForbidden();
     }
 
     private function employeeWithMondaySchedule(): Employee

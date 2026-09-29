@@ -34,7 +34,7 @@ function expectedPayDate(startDate, endDate) {
     return '';
 }
 
-function PeriodRow({ period, ask }) {
+function PeriodRow({ period, ask, canManage }) {
     const generate = async () => {
         if (await ask({
             title: 'Generate payroll?',
@@ -53,14 +53,16 @@ function PeriodRow({ period, ask }) {
             <td>{period.pay_date || '-'}</td>
             <td>{period.records_count}</td>
             <td><span className="badge">{period.status}</span></td>
-            <td className="actions"><div className="table-actions"><button className="primary-table-action generate-payroll-button" type="button" onClick={generate}><Calculator size={16} />Generate Payroll</button></div></td>
+            {canManage && <td className="actions"><div className="table-actions"><button className="primary-table-action generate-payroll-button" type="button" onClick={generate}><Calculator size={16} />Generate Payroll</button></div></td>}
         </tr>
     );
 }
 
 export default function PayrollIndex({ periods, records, filters = {} }) {
     const { auth } = usePage().props;
-    const canManage = auth.user.role !== 'faculty';
+    const isFaculty = auth.user.role === 'faculty';
+    const canReview = !isFaculty;
+    const canManage = auth.user.role === 'payroll_staff';
     const { ask, dialog } = useConfirmDialog();
     const form = useForm({ period_name: '', start_date: '', end_date: '', pay_date: '' });
     const [listFilters, setListFilters] = useState({
@@ -68,8 +70,9 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
         period: filters.period || '',
         status: filters.status || '',
     });
+    const hasActiveFilters = canReview && Object.values(listFilters).some(Boolean);
     const payDate = expectedPayDate(form.data.start_date, form.data.end_date);
-    useDebouncedFilters('/payroll', listFilters, { enabled: canManage });
+    useDebouncedFilters('/payroll', listFilters, { enabled: canReview });
     useRealtimeReload(['periods', 'records'], 10000);
 
     const submit = (event) => {
@@ -88,10 +91,10 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
     };
 
     return (
-        <AppLayout title="Payroll" subtitle={canManage ? 'Create payroll periods and compute pay from attendance logs.' : 'View your generated payslips and payroll summary.'}>
-            {canManage && (
-                <section className="content-grid payroll-overview">
-                    <form className="panel compact-form" onSubmit={submit}>
+        <AppLayout title="Payroll" subtitle={canManage ? 'Create payroll periods and compute pay from attendance logs.' : isFaculty ? 'View your released payslips and payroll summary.' : 'Review payroll periods and faculty payroll records.'}>
+            {canReview && (
+                <section className={`content-grid payroll-overview${canManage ? '' : ' is-read-only'}`}>
+                    {canManage && <form className="panel compact-form" onSubmit={submit}>
                         <h2>New Payroll Period</h2>
                         <label>
                             Period Name
@@ -128,7 +131,7 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                             <div className="form-note">{form.errors.start_date || form.errors.end_date}</div>
                         )}
                         <button type="submit" disabled={form.processing}>Create Period</button>
-                    </form>
+                    </form>}
 
                     <div className="panel">
                         <h2>Payroll Periods</h2>
@@ -141,14 +144,14 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                                         <th>Pay Date</th>
                                         <th>Records</th>
                                         <th>Status</th>
-                                        <th className="table-actions-heading">Actions</th>
+                                        {canManage && <th className="table-actions-heading">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {periods.length ? periods.map((period) => (
-                                        <PeriodRow key={period.id} period={period} ask={ask} />
+                                        <PeriodRow key={period.id} period={period} ask={ask} canManage={canManage} />
                                     )) : (
-                                        <tr><td colSpan="6">No payroll periods yet.</td></tr>
+                                        <tr><td colSpan={canManage ? 6 : 5}>No payroll periods yet.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -158,8 +161,8 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
             )}
 
             <div className="panel">
-                <div className="panel-heading"><h2>{canManage ? 'Payroll Records' : 'My Payroll Records'}</h2></div>
-                {canManage && <div className="list-filters payroll-record-filters"><label className="filter-search">Search Payroll<span className="search-control"><Search size={16} /><input placeholder="Faculty, employee number, or period" value={listFilters.search} onChange={(event) => setListFilters((current) => ({ ...current, search: event.target.value }))} /></span></label><label>Payroll Period<select value={listFilters.period} onChange={(event) => setListFilters((current) => ({ ...current, period: event.target.value }))}><option value="">All periods</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.period_name}</option>)}</select></label><label>Status<select value={listFilters.status} onChange={(event) => setListFilters((current) => ({ ...current, status: event.target.value }))}><option value="">All statuses</option><option value="draft">Draft</option><option value="approved">Approved</option><option value="released">Released</option></select></label>{Object.values(listFilters).some(Boolean) && <button className="clear-filters" type="button" onClick={() => setListFilters({ search: '', period: '', status: '' })}><X size={15} />Clear</button>}</div>}
+                <div className="panel-heading"><h2>{isFaculty ? 'My Payroll Records' : 'Payroll Records'}</h2></div>
+                {canReview && <div className="list-filters payroll-record-filters"><label className="filter-search">Search Payroll<span className="search-control"><Search size={16} /><input placeholder="Faculty, employee number, or period" value={listFilters.search} onChange={(event) => setListFilters((current) => ({ ...current, search: event.target.value }))} /></span></label><label>Payroll Period<select value={listFilters.period} onChange={(event) => setListFilters((current) => ({ ...current, period: event.target.value }))}><option value="">All periods</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.period_name}</option>)}</select></label><label>Status<select value={listFilters.status} onChange={(event) => setListFilters((current) => ({ ...current, status: event.target.value }))}><option value="">All statuses</option><option value="draft">Draft</option><option value="approved">Approved</option><option value="released">Released</option></select></label>{Object.values(listFilters).some(Boolean) && <button className="clear-filters" type="button" onClick={() => setListFilters({ search: '', period: '', status: '' })}><X size={15} />Clear</button>}</div>}
                 <div className="table-wrap">
                     <table>
                         <thead>
@@ -171,7 +174,7 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                                 <th>Gross</th>
                                 <th>Deductions</th>
                                 <th>Net Pay</th>
-                                <th>Status</th>
+                                {canReview && <th>Status</th>}
                                 <th className="table-actions-heading">Actions</th>
                             </tr>
                         </thead>
@@ -185,11 +188,17 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                                     <td>{money(record.gross_pay)}</td>
                                     <td>{money(record.total_deductions)}</td>
                                     <td><strong>{money(record.net_pay)}</strong></td>
-                                    <td><span className={`badge payroll-status is-${record.status}`}>{record.status}</span></td>
+                                    {canReview && <td><span className={`badge payroll-status is-${record.status}`}>{record.status}</span></td>}
                                     <td className="actions"><div className="table-actions"><Link href={`/payroll/records/${record.id}`}>View</Link>{canManage && record.status === 'draft' && <button className="table-action-primary" type="button" onClick={() => approveRecord(record)}><BadgeCheck size={14} />Approve</button>}{canManage && record.status === 'approved' && <button className="table-action-primary is-release" type="button" onClick={() => releaseRecord(record)}><Send size={14} />Release</button>}</div></td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan="9">No payroll records match the selected filters.</td></tr>
+                                <tr>
+                                    <td className="empty-row" colSpan={canReview ? 9 : 8}>
+                                        {canReview
+                                            ? (hasActiveFilters ? 'No payroll records match the selected filters.' : 'No payroll records have been generated yet.')
+                                            : 'No payslips have been released to your account yet.'}
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>

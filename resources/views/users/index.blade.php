@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'User Accounts')
-@section('subtitle', 'Create and manage role-based access for administrators, payroll staff, and faculty.')
+@section('subtitle', 'Create and manage role-based access for administrators, HR, and faculty.')
 
 @section('content')
 <div class="panel">

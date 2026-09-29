@@ -4,7 +4,7 @@
 @section('subtitle', 'Record attendance through RFID, fingerprint code, or manual entry.')
 
 @section('content')
-@if (auth()->user()->role !== 'faculty')
+@if (auth()->user()->role === 'payroll_staff')
 <section class="content-grid">
     <form class="panel" method="POST" action="{{ route('attendance.tap') }}">
         @csrf

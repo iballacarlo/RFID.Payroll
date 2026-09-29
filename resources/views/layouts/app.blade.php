@@ -44,7 +44,7 @@
                 <span class="date-chip">{{ now()->format('M d, Y') }}</span>
                 <div class="user-chip">
                     <strong>{{ auth()->user()->name }}</strong>
-                    <span>{{ str_replace('_', ' ', auth()->user()->role) }}</span>
+                    <span>{{ auth()->user()->role === 'payroll_staff' ? 'HR' : str_replace('_', ' ', auth()->user()->role) }}</span>
                 </div>
             </div>
         </header>

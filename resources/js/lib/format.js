@@ -19,6 +19,12 @@ export const time12 = (value) => {
 
 export const dateToday = () => new Date().toISOString().slice(0, 10);
 
+export const roleLabel = (role) => ({
+    admin: 'Administrator',
+    payroll_staff: 'HR',
+    faculty: 'Faculty',
+}[role] || role);
+
 export const dateLabel = (date = new Date()) => new Intl.DateTimeFormat('en-PH', {
     weekday: 'long', month: 'short', day: 'numeric', year: 'numeric',
 }).format(date);

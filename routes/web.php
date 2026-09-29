@@ -63,15 +63,15 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/backup/restore', [BackupController::class, 'restore'])->name('settings.backup.restore')->middleware('role:admin');
 
     Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-    Route::post('attendance/tap', [AttendanceController::class, 'tap'])->name('attendance.tap')->middleware('role:admin,payroll_staff');
-    Route::post('attendance/manual', [AttendanceController::class, 'manual'])->name('attendance.manual')->middleware('role:admin,payroll_staff');
-    Route::post('attendance/generate-test', [AttendanceController::class, 'generateScheduledTestAttendance'])->name('attendance.generate-test')->middleware('role:admin,payroll_staff');
+    Route::post('attendance/tap', [AttendanceController::class, 'tap'])->name('attendance.tap')->middleware('role:payroll_staff');
+    Route::post('attendance/manual', [AttendanceController::class, 'manual'])->name('attendance.manual')->middleware('role:payroll_staff');
+    Route::post('attendance/generate-test', [AttendanceController::class, 'generateScheduledTestAttendance'])->name('attendance.generate-test')->middleware('role:payroll_staff');
 
     Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');
-    Route::post('payroll/periods', [PayrollController::class, 'storePeriod'])->name('payroll.periods.store')->middleware('role:admin,payroll_staff');
-    Route::post('payroll/periods/{period}/generate', [PayrollController::class, 'generate'])->name('payroll.generate')->middleware('role:admin,payroll_staff');
+    Route::post('payroll/periods', [PayrollController::class, 'storePeriod'])->name('payroll.periods.store')->middleware('role:payroll_staff');
+    Route::post('payroll/periods/{period}/generate', [PayrollController::class, 'generate'])->name('payroll.generate')->middleware('role:payroll_staff');
     Route::get('payroll/records/{record}', [PayrollController::class, 'show'])->name('payroll.records.show');
-    Route::put('payroll/records/{record}', [PayrollController::class, 'update'])->name('payroll.records.update')->middleware('role:admin,payroll_staff');
-    Route::post('payroll/records/{record}/approve', [PayrollController::class, 'approve'])->name('payroll.records.approve')->middleware('role:admin,payroll_staff');
-    Route::post('payroll/records/{record}/release', [PayrollController::class, 'release'])->name('payroll.records.release')->middleware('role:admin,payroll_staff');
+    Route::put('payroll/records/{record}', [PayrollController::class, 'update'])->name('payroll.records.update')->middleware('role:payroll_staff');
+    Route::post('payroll/records/{record}/approve', [PayrollController::class, 'approve'])->name('payroll.records.approve')->middleware('role:payroll_staff');
+    Route::post('payroll/records/{record}/release', [PayrollController::class, 'release'])->name('payroll.records.release')->middleware('role:payroll_staff');
 });

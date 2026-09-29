@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, Clock3, GraduationCap, KeyRound, LayoutDashboard, LogOut, MailWarning, Moon, Settings2, ShieldCheck, Sun, UserRound, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { dateLabel, fullName } from '../lib/format';
+import { dateLabel, fullName, roleLabel } from '../lib/format';
 
 const navigation = [
     { label: 'Dashboard', group: 'Overview', href: '/', icon: LayoutDashboard, tone: 'nav-dashboard', active: (url) => url === '/' },
@@ -122,7 +122,7 @@ export default function AppLayout({ title, subtitle, children }) {
                             <span className="mobile-date-label"><strong>{mobileWeekday}</strong><span>{mobileDate}</span></span>
                         </span>
                         <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={darkMode ? 'Use light mode' : 'Use dark mode'} title={darkMode ? 'Use light mode' : 'Use dark mode'}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
-                        <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{user.role.replace('_', ' ')}</small></span></Link>
+                        <Link className="user-chip" href="/profile" title="View and edit your profile"><span className="user-avatar">{(user.employee ? fullName(user.employee) : user.name).charAt(0)}</span><span className="user-copy"><strong>{user.employee ? fullName(user.employee) : user.name}</strong><small>{roleLabel(user.role)}</small></span></Link>
                     </div>
                 </header>
                 {user.must_change_password && <section className="password-change-reminder" role="status"><KeyRound size={20} /><div><strong>Change your temporary password</strong><span>Your account is still using the temporary password issued by the administrator.</span></div><Link href="/profile">Change password</Link></section>}

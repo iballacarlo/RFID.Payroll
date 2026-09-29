@@ -17,7 +17,7 @@
     <label>Role
         <select name="role" required>
             <option value="admin" @selected(old('role', $user->role) === 'admin')>Admin</option>
-            <option value="payroll_staff" @selected(old('role', $user->role) === 'payroll_staff')>Payroll Staff</option>
+            <option value="payroll_staff" @selected(old('role', $user->role) === 'payroll_staff')>HR</option>
             <option value="faculty" @selected(old('role', $user->role) === 'faculty')>Faculty</option>
         </select>
     </label>
@@ -34,7 +34,7 @@
     </label>
 
     <div class="form-note">
-        Faculty accounts must be linked to a faculty record. Admin and payroll staff accounts do not need a linked faculty profile.
+        Faculty accounts must be linked to a faculty record. Admin and HR accounts do not need a linked faculty profile.
     </div>
 
     <div class="form-actions">

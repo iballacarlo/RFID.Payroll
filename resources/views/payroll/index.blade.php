@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
 @section('title', 'Payroll')
-@section('subtitle', auth()->user()->role === 'faculty' ? 'View your generated payslips and payroll summary.' : 'Create payroll periods and compute pay from attendance logs.')
+@section('subtitle', auth()->user()->role === 'faculty' ? 'View your released payslips and payroll summary.' : (auth()->user()->role === 'payroll_staff' ? 'Create payroll periods and compute pay from attendance logs.' : 'Review payroll periods and faculty payroll records.'))
 
 @section('content')
-@if (auth()->user()->role !== 'faculty')
+@if (auth()->user()->role === 'payroll_staff')
 <section class="content-grid">
     <form class="panel" method="POST" action="{{ route('payroll.periods.store') }}">
         @csrf
