@@ -1,6 +1,6 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, CalendarRange, CheckCircle2, Clock3, LogIn, LogOut, Radio, Search, TimerReset, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 import Pagination from '../../components/Pagination';
 import useDebouncedFilters from '../../hooks/useDebouncedFilters';
@@ -32,33 +32,10 @@ function statusClass(log) {
 }
 
 function FacultyDtr({ dtr, logs }) {
-    const { auth } = usePage().props;
-    const [clock, setClock] = useState(new Date());
     const today = dtr?.today_log;
     const summary = dtr?.summary || {};
 
-    useEffect(() => {
-        const clockTimer = window.setInterval(() => setClock(new Date()), 1000);
-        return () => window.clearInterval(clockTimer);
-    }, []);
-
-    const clockTime = new Intl.DateTimeFormat('en-PH', {
-        timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-    }).format(clock);
-    const clockDate = new Intl.DateTimeFormat('en-PH', {
-        timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-    }).format(clock);
-
     return <div className="faculty-dtr">
-        <section className="dtr-live-band">
-            <div className="dtr-live-copy">
-                <div className="dtr-eyebrow"><span><Radio size={13} />Live</span>Daily Time Record</div>
-                <h2>{fullName(auth.user.employee)}</h2>
-                <p>{auth.user.employee?.employee_no} <i></i> {auth.user.employee?.department || 'Cavite State University - Imus Campus'}</p>
-            </div>
-            <div className="dtr-clock" aria-label="Current Philippine time"><strong>{clockTime}</strong><span>{clockDate}</span></div>
-        </section>
-
         <section className="dtr-today" aria-label="Today attendance status">
             <div className="dtr-today-heading">
                 <div><span>Today</span><h3>{readableDate(dtr?.date, { weekday: 'long' })}</h3></div>

@@ -572,6 +572,157 @@ select:focus {
     }
 }
 
+/* Faculty identity, term, and live time belong in the dashboard overview. */
+.faculty-dashboard-overview {
+    align-items: center;
+    background: #07583b;
+    border: 1px solid #0c6a49;
+    border-top: 5px solid #e8bd55;
+    color: #fff;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(280px, 1.15fr) minmax(250px, 0.9fr) auto;
+    margin: 0 auto 12px;
+    max-width: 1480px;
+    padding: 24px 28px;
+    width: 100%;
+}
+
+.faculty-dashboard-identity,
+.faculty-dashboard-term,
+.faculty-dashboard-clock { min-width: 0; }
+
+.faculty-dashboard-live {
+    align-items: center;
+    background: #e8bd55;
+    color: #163c2b;
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 800;
+    gap: 6px;
+    padding: 7px 10px;
+    text-transform: uppercase;
+}
+
+.faculty-dashboard-live svg { animation: dtr-pulse 1.4s ease-in-out infinite; }
+
+.faculty-dashboard-identity h2 {
+    color: #fff;
+    font-size: 27px;
+    line-height: 1.15;
+    margin: 10px 0 5px;
+}
+
+.faculty-dashboard-identity p {
+    align-items: center;
+    color: #c9ded4;
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 13px;
+    gap: 9px;
+    margin: 0;
+}
+
+.faculty-dashboard-identity p i {
+    background: #7eae98;
+    border-radius: 50%;
+    height: 4px;
+    width: 4px;
+}
+
+.faculty-dashboard-term,
+.faculty-dashboard-clock {
+    border-left: 1px solid rgba(255, 255, 255, 0.24);
+    display: grid;
+    gap: 5px;
+    padding-left: 24px;
+}
+
+.faculty-dashboard-term small,
+.faculty-dashboard-clock small {
+    color: #d9e8e0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.faculty-dashboard-term strong {
+    color: #fff;
+    font-size: 17px;
+    line-height: 1.35;
+}
+
+.faculty-dashboard-clock { justify-items: end; }
+
+.faculty-dashboard-clock small { color: #f2d16c; }
+
+.faculty-dashboard-clock strong {
+    color: #fff;
+    font-size: 29px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.faculty-dashboard-overview + .bento-dashboard { padding-top: 12px; }
+
+html[data-theme='dark'] .faculty-dashboard-overview {
+    background: #07110c;
+    border-color: #294336;
+    border-top-color: #8a763d;
+}
+
+html[data-theme='dark'] .faculty-dashboard-live {
+    background: #75642f;
+    color: #fff7db;
+}
+
+html[data-theme='dark'] .faculty-dashboard-identity p,
+html[data-theme='dark'] .faculty-dashboard-term small { color: #aebeb5; }
+
+html[data-theme='dark'] .faculty-dashboard-clock small { color: #d8c67e; }
+
+@media (max-width: 900px) {
+    .faculty-dashboard-overview {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 22px;
+    }
+
+    .faculty-dashboard-identity { grid-column: 1 / -1; }
+
+    .faculty-dashboard-term,
+    .faculty-dashboard-clock {
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+        padding-left: 0;
+        padding-top: 17px;
+    }
+}
+
+@media (max-width: 600px) {
+    .faculty-dashboard-overview {
+        gap: 17px;
+        grid-template-columns: 1fr;
+        margin-bottom: 8px;
+        padding: 20px;
+    }
+
+    .faculty-dashboard-identity,
+    .faculty-dashboard-term,
+    .faculty-dashboard-clock { grid-column: 1; }
+
+    .faculty-dashboard-identity h2 { font-size: 23px; }
+
+    .faculty-dashboard-term,
+    .faculty-dashboard-clock { justify-items: start; }
+
+    .faculty-dashboard-clock strong { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .faculty-dashboard-live svg { animation: none; }
+}
+
 .logout-form {
     bottom: 22px;
     left: 22px;
@@ -5055,6 +5206,18 @@ html[data-theme='dark'] .main :is(.panel, .form-grid, .compact-form, .schedule-p
     min-width: max-content;
 }
 
+.main .faculty-records-table .table-actions-heading,
+.main .faculty-records-table td.actions,
+.main .payroll-actions-table .table-actions-heading,
+.main .payroll-actions-table td.actions {
+    text-align: left;
+}
+
+.main .faculty-records-table .table-actions,
+.main .payroll-actions-table .table-actions {
+    justify-content: flex-start;
+}
+
 .main .table-actions > :is(a, button) {
     align-items: center;
     background: #edf4ef;
@@ -5448,87 +5611,85 @@ html[data-theme='dark'] .dialog-actions .dialog-cancel { background: #1b3025 !im
     .dialog-actions .dialog-confirm:only-child { grid-column: 1 / -1; }
 }
 
-/* Academic context belongs on the dashboard, where it remains easy to scan. */
-.academic-term-summary {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(2, minmax(240px, 320px));
-    justify-content: start;
-    margin: 0 auto 12px;
+/* Keep the academic period visible without competing with dashboard metrics. */
+.dashboard-academic-context {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin: 0 auto 4px;
     max-width: 1480px;
+    min-height: 42px;
+    padding: 4px 2px;
     width: 100%;
 }
 
-.academic-term-card {
-    align-items: center;
-    background: #fff;
-    border: 1px solid #d4dfd8;
-    border-radius: 8px;
-    border-top: 4px solid #176b46;
-    display: grid;
-    gap: 13px;
-    grid-template-columns: 42px minmax(0, 1fr);
-    min-height: 112px;
-    padding: 22px;
-}
+.dashboard-academic-context > svg { color: #176b46; flex: 0 0 auto; }
 
-.academic-term-copy {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-}
-
-.academic-term-copy small {
+.dashboard-academic-context > span {
     color: var(--muted);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
-.academic-term-copy strong {
+.dashboard-academic-context > strong {
     color: var(--ink);
-    font-size: 26px;
-    line-height: 1;
+    font-size: 15px;
 }
 
-.academic-term-icon {
+.dashboard-academic-context > a {
     align-items: center;
-    background: #e6f1eb;
-    border-radius: 7px;
-    color: var(--green);
-    display: flex;
-    height: 42px;
-    justify-content: center;
-    width: 42px;
+    color: #176b46;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 700;
+    gap: 4px;
+    margin-left: auto;
 }
 
-.academic-semester .academic-term-icon {
-    background: #fff1dc;
-    color: #9b651f;
+.dashboard-academic-context + .bento-dashboard { padding-top: 10px; }
+
+html[data-theme='dark'] .dashboard-academic-context > svg,
+html[data-theme='dark'] .dashboard-academic-context > a { color: #b8d8c5; }
+
+html[data-theme='dark'] .dashboard-academic-context > span { color: #94a99d; }
+html[data-theme='dark'] .dashboard-academic-context > strong { color: #f1f6f3; }
+
+/* Keep the activity table dominant while using the dashboard's right column fully. */
+.trend-bento {
+    align-self: start;
+    min-height: 0;
 }
 
-.academic-term-summary + .bento-dashboard { padding-top: 12px; }
+@media (min-width: 1101px) {
+    .bento-dashboard:not(.faculty-bento) .attendance-bento {
+        align-self: stretch;
+        grid-column: 1 / span 8;
+        grid-row: 2 / span 2;
+    }
 
-html[data-theme='dark'] .academic-term-card {
-    background: #102019;
-    border-color: #345443;
+    .bento-dashboard:not(.faculty-bento) .trend-bento {
+        grid-column: 9 / -1;
+        grid-row: 2;
+    }
+
+    .bento-dashboard:not(.faculty-bento) .payroll-bento {
+        align-self: start;
+        grid-column: 9 / -1;
+        grid-row: 3;
+    }
 }
-
-html[data-theme='dark'] .academic-term-copy small { color: #aebeb5; }
-html[data-theme='dark'] .academic-term-copy strong { color: #f1f6f3; }
-html[data-theme='dark'] .academic-term-icon { background: #1c3a2b; color: #b8d8c5; }
-html[data-theme='dark'] .academic-semester .academic-term-icon { background: #3b321c; color: #e0ca80; }
 
 @media (max-width: 600px) {
-    .academic-term-summary {
-        gap: 10px;
-        grid-template-columns: 1fr;
-        margin-bottom: 8px;
+    .dashboard-academic-context {
+        align-items: flex-start;
+        display: grid;
+        gap: 2px 9px;
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        padding: 6px 0;
     }
 
-    .academic-term-card {
-        min-height: 96px;
-        padding: 18px;
-    }
-
-    .academic-term-copy strong { font-size: 20px; }
+    .dashboard-academic-context > svg { grid-row: 1 / span 2; margin-top: 2px; }
+    .dashboard-academic-context > strong { font-size: 14px; grid-column: 2; line-height: 1.3; }
+    .dashboard-academic-context > a { grid-column: 3; grid-row: 1 / span 2; margin-top: 6px; }
 }

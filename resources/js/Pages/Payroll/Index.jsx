@@ -136,7 +136,7 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                     <div className="panel">
                         <h2>Payroll Periods</h2>
                         <div className="table-wrap">
-                            <table>
+                            <table className="payroll-actions-table">
                                 <thead>
                                     <tr>
                                         <th>Period</th>
@@ -164,7 +164,7 @@ export default function PayrollIndex({ periods, records, filters = {} }) {
                 <div className="panel-heading"><h2>{isFaculty ? 'My Payroll Records' : 'Payroll Records'}</h2></div>
                 {canReview && <div className="list-filters payroll-record-filters"><label className="filter-search">Search Payroll<span className="search-control"><Search size={16} /><input placeholder="Faculty, employee number, or period" value={listFilters.search} onChange={(event) => setListFilters((current) => ({ ...current, search: event.target.value }))} /></span></label><label>Payroll Period<select value={listFilters.period} onChange={(event) => setListFilters((current) => ({ ...current, period: event.target.value }))}><option value="">All periods</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.period_name}</option>)}</select></label><label>Status<select value={listFilters.status} onChange={(event) => setListFilters((current) => ({ ...current, status: event.target.value }))}><option value="">All statuses</option><option value="draft">Draft</option><option value="approved">Approved</option><option value="released">Released</option></select></label>{Object.values(listFilters).some(Boolean) && <button className="clear-filters" type="button" onClick={() => setListFilters({ search: '', period: '', status: '' })}><X size={15} />Clear</button>}</div>}
                 <div className="table-wrap">
-                    <table>
+                    <table className="payroll-actions-table">
                         <thead>
                             <tr>
                                 <th>Faculty</th>

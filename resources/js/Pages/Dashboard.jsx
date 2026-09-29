@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CalendarCheck2, CalendarClock, CalendarDays, Clock3, GraduationCap, ListChecks, Wallet } from 'lucide-react';
+import { ArrowUpRight, CalendarCheck2, CalendarClock, CalendarDays, Clock3, GraduationCap, Radio, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AppLayout from '../Layouts/AppLayout';
 import useRealtimeReload from '../hooks/useRealtimeReload';
 import { fullName, money, time12 } from '../lib/format';
@@ -12,17 +13,51 @@ function MetricTile({ href, icon: Icon, label, value, tone }) {
     </Link>;
 }
 
-function AcademicTermCard({ icon: Icon, label, value, tone }) {
-    return <article className={`academic-term-card ${tone}`}>
-        <span className="academic-term-icon"><Icon size={21} strokeWidth={1.8} /></span>
-        <span className="academic-term-copy"><small>{label}</small><strong>{value || '-'}</strong></span>
-    </article>;
+function AcademicTermContext({ canEdit, value }) {
+    return <section className="dashboard-academic-context" aria-label="Current academic term">
+        <CalendarDays size={18} strokeWidth={1.8} />
+        <span>Academic Period</span>
+        <strong>{value || '-'}</strong>
+        {canEdit && <Link href="/settings/general">Edit <ArrowUpRight size={14} /></Link>}
+    </section>;
+}
+
+function FacultyDashboardOverview({ academicTermLabel, user }) {
+    const [clock, setClock] = useState(new Date());
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setClock(new Date()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const clockTime = new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    }).format(clock);
+    const employee = user.employee;
+
+    return <section className="faculty-dashboard-overview" aria-label="Faculty account overview">
+        <div className="faculty-dashboard-identity">
+            <span className="faculty-dashboard-live"><Radio size={13} />Live</span>
+            <h2>{fullName(employee)}</h2>
+            <p>{employee?.employee_no || '-'} <i></i> {employee?.department || 'Cavite State University - Imus Campus'}</p>
+        </div>
+        <div className="faculty-dashboard-term">
+            <small>Current Academic Term</small>
+            <strong>{academicTermLabel || '-'}</strong>
+        </div>
+        <div className="faculty-dashboard-clock" aria-label="Current Philippine time">
+            <small>Philippine Time</small>
+            <strong>{clockTime}</strong>
+        </div>
+    </section>;
 }
 
 export default function Dashboard({ employeeCount, presentToday, openPeriods, attendanceTrend = [], latestPayrolls, recentAttendance, contractWarnings = [] }) {
     const { academicTerm, auth } = usePage().props;
     const isFaculty = auth.user.role === 'faculty';
-    const semester = academicTerm?.semester?.replace(/ Semester$/i, '').replace(/ Term$/i, '').toUpperCase();
+    const academicTermLabel = academicTerm?.semester && academicTerm?.school_year
+        ? `${academicTerm.semester.toUpperCase()} SY ${academicTerm.school_year}`
+        : academicTerm?.label;
 
     useRealtimeReload(isFaculty
         ? ['latestPayrolls', 'recentAttendance', 'contractWarnings']
@@ -34,10 +69,9 @@ export default function Dashboard({ employeeCount, presentToday, openPeriods, at
             <div><strong>Contract expiration reminder</strong><span>{contractWarnings.map((employee) => `${fullName(employee)} - ${employee.days_remaining === 0 ? 'ends today' : `${employee.days_remaining} day${employee.days_remaining === 1 ? '' : 's'} left`}`).join(' | ')}</span></div>
             {!isFaculty && <Link href="/employees">Review faculty <ArrowUpRight size={15} /></Link>}
         </section>}
-        <section className="academic-term-summary" aria-label="Current academic term">
-            <AcademicTermCard icon={CalendarDays} label="Current Academic Year" value={academicTerm?.school_year} tone="academic-year" />
-            <AcademicTermCard icon={ListChecks} label="Current Semester" value={semester} tone="academic-semester" />
-        </section>
+        {isFaculty
+            ? <FacultyDashboardOverview academicTermLabel={academicTermLabel} user={auth.user} />
+            : <AcademicTermContext canEdit={auth.user.role === 'admin'} value={academicTermLabel} />}
         <section className={`bento-dashboard${isFaculty ? ' faculty-bento' : ''}`}>
             {!isFaculty && <>
                 <MetricTile href={auth.user.role === 'admin' ? '/employees' : '/attendance'} icon={GraduationCap} label="Faculty" value={employeeCount} tone="metric-green" />

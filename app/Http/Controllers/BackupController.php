@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -22,6 +23,13 @@ class BackupController extends Controller
 
     public function download()
     {
+        if ($missingTables = $this->missingTables()) {
+            return redirect()->route('settings.backup.index')->with(
+                'error',
+                'Backup is unavailable because the database is missing required tables: '.implode(', ', $missingTables).'. Run the latest database migrations first.'
+            );
+        }
+
         $backup = [
             'application' => 'CvSU Payroll System',
             'version' => 1,
@@ -53,6 +61,12 @@ class BackupController extends Controller
             }
         }
 
+        if ($missingTables = $this->missingTables()) {
+            throw ValidationException::withMessages([
+                'backup_file' => 'The local database is not up to date. Missing tables: '.implode(', ', $missingTables).'. Run the latest database migrations, then restore the backup again.',
+            ]);
+        }
+
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         try {
             DB::transaction(function () use ($backup) {
@@ -72,5 +86,13 @@ class BackupController extends Controller
         }
 
         return redirect()->route('settings.backup.index')->with('success', 'Backup restored successfully.');
+    }
+
+    private function missingTables(): array
+    {
+        return array_values(array_filter(
+            self::TABLES,
+            fn (string $table) => ! Schema::hasTable($table)
+        ));
     }
 }
