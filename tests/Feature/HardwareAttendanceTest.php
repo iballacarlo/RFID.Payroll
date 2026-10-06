@@ -112,4 +112,58 @@ class HardwareAttendanceTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_offline_tap_uses_its_original_time_and_is_idempotent(): void
+    {
+        config(['services.hardware.api_key' => 'device-secret']);
+        Carbon::setTestNow(Carbon::parse('2026-10-06 10:00:00', 'Asia/Manila'));
+        $rank = FacultyRank::where('is_active', true)->firstOrFail();
+        $employee = Employee::create([
+            'employee_no' => 'COS-OFFLINE-1',
+            'first_name' => 'Offline',
+            'last_name' => 'Faculty',
+            'faculty_rank_id' => $rank->id,
+            'rate_type' => 'hourly',
+            'rate_amount' => $rank->rate_amount,
+            'status' => 'active',
+        ]);
+        $employee->rfidCards()->create([
+            'rfid_uid' => 'OFFLINE-CARD',
+            'status' => 'active',
+        ]);
+        $payload = [
+            'identifier' => 'OFFLINE-CARD',
+            'method' => 'rfid',
+            'event_id' => 'device-001-1791244800-0001',
+            'occurred_at' => '2026-10-06 08:15:30',
+        ];
+
+        $tap = fn () => $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->postJson('/api/hardware/tap', $payload);
+
+        $tap()->assertOk()->assertJsonPath('action', 'IN')->assertJsonPath('display_time', '08:15 AM');
+        $tap()->assertOk()->assertJsonPath('action', 'IN')->assertJsonPath('display_time', '08:15 AM');
+
+        $this->withHeader('X-Hardware-Key', 'device-secret')
+            ->postJson('/api/hardware/tap', [
+                'identifier' => 'OFFLINE-CARD',
+                'method' => 'rfid',
+                'event_id' => 'device-001-1791245100-0002',
+                'occurred_at' => '2026-10-06 08:20:30',
+            ])
+            ->assertOk()
+            ->assertJsonPath('action', 'OUT')
+            ->assertJsonPath('display_time', '08:20 AM');
+
+        $this->assertDatabaseCount('attendance_logs', 1);
+        $this->assertDatabaseCount('hardware_attendance_events', 2);
+        $this->assertDatabaseHas('attendance_logs', [
+            'employee_id' => $employee->id,
+            'attendance_date' => '2026-10-06',
+            'time_in' => '08:15:30',
+            'time_out' => '08:20:30',
+        ]);
+
+        Carbon::setTestNow();
+    }
 }

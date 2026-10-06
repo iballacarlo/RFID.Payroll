@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\FingerprintTemplate;
+use App\Models\HardwareAttendanceEvent;
 use App\Models\HardwareEnrollment;
 use App\Models\RfidCard;
 use App\Services\AttendanceCalculator;
@@ -25,7 +26,28 @@ class HardwareAttendanceController extends Controller
         $data = $request->validate([
             'identifier' => ['required', 'max:100'],
             'method' => ['required', 'in:rfid,fingerprint'],
+            'event_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9._:-]+$/'],
+            'occurred_at' => ['nullable', 'date_format:Y-m-d H:i:s'],
         ]);
+
+        if (! empty($data['event_id'])) {
+            $existingEvent = HardwareAttendanceEvent::where('event_id', $data['event_id'])->first();
+            if ($existingEvent) {
+                if ($existingEvent->identifier !== $data['identifier'] || $existingEvent->method !== $data['method']) {
+                    return response()->json(['ok' => false, 'message' => 'Event ID was already used by a different tap.'], 409);
+                }
+
+                return response()->json($existingEvent->response_payload);
+            }
+        }
+
+        $occurredAt = ! empty($data['occurred_at'])
+            ? Carbon::createFromFormat('Y-m-d H:i:s', $data['occurred_at'], 'Asia/Manila')
+            : Carbon::now('Asia/Manila');
+
+        if ($occurredAt->greaterThan(Carbon::now('Asia/Manila')->addMinutes(5))) {
+            return response()->json(['ok' => false, 'message' => 'Attendance time cannot be in the future.'], 422);
+        }
 
         $employee = $data['method'] === 'rfid'
             ? optional(RfidCard::where('rfid_uid', $data['identifier'])->where('status', 'active')->first())->employee
@@ -38,19 +60,35 @@ class HardwareAttendanceController extends Controller
             ], 404);
         }
 
-        $result = $this->recordAttendance($employee->id, $data['method']);
+        $responsePayload = DB::transaction(function () use ($data, $employee, $occurredAt) {
+            $result = $this->recordAttendance($employee->id, $data['method'], $occurredAt);
+            $payload = [
+                'ok' => true,
+                'message' => $result['message'],
+                'employee' => $employee->full_name,
+                'display_name' => $this->displayName($employee),
+                'action' => $result['action'],
+                'display_time' => $result['time'],
+                'status' => $result['log']->status,
+                'time_in' => $result['log']->time_in,
+                'time_out' => $result['log']->time_out,
+            ];
 
-        return response()->json([
-            'ok' => true,
-            'message' => $result['message'],
-            'employee' => $employee->full_name,
-            'display_name' => $this->displayName($employee),
-            'action' => $result['action'],
-            'display_time' => $result['time'],
-            'status' => $result['log']->status,
-            'time_in' => $result['log']->time_in,
-            'time_out' => $result['log']->time_out,
-        ]);
+            if (! empty($data['event_id'])) {
+                HardwareAttendanceEvent::create([
+                    'event_id' => $data['event_id'],
+                    'employee_id' => $employee->id,
+                    'identifier' => $data['identifier'],
+                    'method' => $data['method'],
+                    'occurred_at' => $occurredAt,
+                    'response_payload' => $payload,
+                ]);
+            }
+
+            return $payload;
+        });
+
+        return response()->json($responsePayload);
     }
 
     public function pendingEnrollment(Request $request)
@@ -193,9 +231,9 @@ class HardwareAttendanceController extends Controller
         ], 401);
     }
 
-    private function recordAttendance(int $employeeId, string $method): array
+    private function recordAttendance(int $employeeId, string $method, Carbon $occurredAt): array
     {
-        $now = Carbon::now('Asia/Manila');
+        $now = $occurredAt->copy()->setTimezone('Asia/Manila');
         $log = AttendanceLog::firstOrNew([
             'employee_id' => $employeeId,
             'attendance_date' => $now->toDateString(),
