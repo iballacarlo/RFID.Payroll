@@ -9,3 +9,5 @@ Route::get('hardware/enrollment', [HardwareAttendanceController::class, 'pending
     ->middleware('throttle:120,1');
 Route::post('hardware/enrollments/{enrollment}/result', [HardwareAttendanceController::class, 'completeEnrollment'])
     ->middleware('throttle:30,1');
+Route::get('hardware/enrollments/{enrollment}/status', [HardwareAttendanceController::class, 'enrollmentStatus'])
+    ->middleware('throttle:120,1');

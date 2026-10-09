@@ -15,6 +15,27 @@ class EmployeeCredentialTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_hardware_can_observe_cancelled_and_expired_enrollments(): void
+    {
+        config(['services.hardware.api_key' => 'device-secret']);
+        $enrollment = \App\Models\HardwareEnrollment::create([
+            'employee_id' => $this->employee()->id,
+            'method' => 'rfid',
+            'status' => 'cancelled',
+            'expires_at' => now()->addMinute(),
+        ]);
+        $url = "/api/hardware/enrollments/{$enrollment->id}/status";
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->withHeader('X-Hardware-Key', 'device-secret')->getJson($url)
+            ->assertOk()->assertJsonPath('status', 'cancelled');
+
+        $enrollment->update(['status' => 'processing', 'expires_at' => now()->subMinute()]);
+        $this->withHeader('X-Hardware-Key', 'device-secret')->getJson($url)
+            ->assertOk()->assertJsonPath('status', 'expired');
+        $this->assertDatabaseHas('hardware_enrollments', ['id' => $enrollment->id, 'status' => 'expired']);
+    }
+
     public function test_editing_faculty_details_does_not_change_device_registration_time(): void
     {
         $employee = $this->employee();

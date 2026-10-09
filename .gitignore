@@ -21,6 +21,7 @@
 /vendor
 hardware/RFID/device_config.h
 hardware/PayrollHardware/device_config.h
+hardware/PayrollHardwareTFT/device_config.h
 Homestead.json
 Homestead.yaml
 Thumbs.db

@@ -124,6 +124,19 @@ class HardwareAttendanceController extends Controller
         ]);
     }
 
+    public function enrollmentStatus(Request $request, HardwareEnrollment $enrollment)
+    {
+        if ($unauthorized = $this->authorizeHardware($request)) {
+            return $unauthorized;
+        }
+
+        if (in_array($enrollment->status, ['pending', 'processing'], true) && $enrollment->expires_at->isPast()) {
+            $enrollment->update(['status' => 'expired', 'message' => 'The registration request expired.']);
+        }
+
+        return response()->json(['id' => (string) $enrollment->id, 'status' => $enrollment->status]);
+    }
+
     public function completeEnrollment(Request $request, HardwareEnrollment $enrollment)
     {
         if ($unauthorized = $this->authorizeHardware($request)) {

@@ -3,11 +3,8 @@
 #include <HTTPClient.h>
 #include <SPI.h>
 #include <MFRC522.h>
-#include <Wire.h>
-#include <RTClib.h>
-#include <esp_sntp.h>
-#include <sys/time.h>
-#include <LiquidCrystal_I2C.h>
+#define LGFX_USE_V1
+#include <LovyanGFX.hpp>
 #include <Adafruit_Fingerprint.h>
 #include <LittleFS.h>
 #include <Preferences.h>
@@ -28,18 +25,65 @@
 #define YELLOW_LED_PIN 32
 #define FINGER_RX_PIN 13
 #define FINGER_TX_PIN 14
+#define TFT_CS_PIN 21
+#define TFT_DC_PIN 22
+#define TFT_RST_PIN 33
+
+class PayrollDisplay : public lgfx::LGFX_Device {
+  lgfx::Panel_ILI9488 panel;
+  lgfx::Bus_SPI bus;
+
+ public:
+  PayrollDisplay() {
+    {
+      auto config = bus.config();
+      config.spi_host = HSPI_HOST;
+      config.spi_mode = 0;
+      config.freq_write = 20000000;
+      config.freq_read = 16000000;
+      config.spi_3wire = false;
+      config.use_lock = true;
+      config.dma_channel = 1;
+      config.pin_sclk = 16;
+      config.pin_mosi = 17;
+      config.pin_miso = -1;
+      config.pin_dc = TFT_DC_PIN;
+      bus.config(config);
+      panel.setBus(&bus);
+    }
+
+    {
+      auto config = panel.config();
+      config.pin_cs = TFT_CS_PIN;
+      config.pin_rst = TFT_RST_PIN;
+      config.pin_busy = -1;
+      config.memory_width = 320;
+      config.memory_height = 480;
+      config.panel_width = 320;
+      config.panel_height = 480;
+      config.offset_x = 0;
+      config.offset_y = 0;
+      config.offset_rotation = 0;
+      config.readable = false;
+      config.invert = false;
+      config.rgb_order = false;
+      config.dlen_16bit = false;
+      config.bus_shared = false;
+      panel.config(config);
+    }
+
+    setPanel(&panel);
+  }
+};
 
 const char* API_BASE_URL = "https://payroll-system.up.railway.app/api/hardware";
 
 MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN);
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+PayrollDisplay lcd;
 HardwareSerial fingerSerial(2);
 Adafruit_Fingerprint finger(&fingerSerial);
 WiFiClientSecure secureClient;
 Preferences offlinePreferences;
-RTC_DS3231 rtc;
-bool rtcAvailable = false;
-volatile bool rtcSyncPending = false;
 
 bool fingerprintAvailable = false;
 bool waitForFingerRelease = false;
@@ -84,20 +128,44 @@ struct __attribute__((packed)) OfflineAttendanceRecord {
 };
 
 QueueHandle_t enrollmentQueue = nullptr;
-QueueHandle_t enrollmentMonitorQueue = nullptr;
-volatile bool enrollmentCancelled = false;
-volatile uint32_t activeEnrollmentId = 0;
 volatile bool enrollmentBusy = false;
 volatile bool attendanceBusy = false;
 
+const uint16_t DISPLAY_BACKGROUND = 0x020C;
+const uint16_t DISPLAY_GREEN = 0x0548;
+const uint16_t DISPLAY_GOLD = 0xFE60;
+const uint16_t DISPLAY_WHITE = 0xFFFF;
+const uint16_t DISPLAY_MUTED = 0xBDF7;
+
+void drawDisplayFrame() {
+  lcd.fillScreen(DISPLAY_BACKGROUND);
+  lcd.fillRect(0, 0, lcd.width(), 54, DISPLAY_GREEN);
+  lcd.fillRect(0, 54, lcd.width(), 4, DISPLAY_GOLD);
+  lcd.setTextColor(DISPLAY_WHITE, DISPLAY_GREEN);
+  lcd.setTextSize(2);
+  lcd.setCursor(18, 18);
+  lcd.print("CvSU IMUS  |  DCS PAYROLL");
+}
+
 void printLine(int row, String text) {
-  text = text.substring(0, 16);
-  while (text.length() < 16) text += " ";
-  lcd.setCursor(0, row);
-  lcd.print(text);
+  const int y = row == 0 ? 92 : 188;
+  const int height = 72;
+  const int maxWidth = lcd.width() - 40;
+  int textSize = row == 0 ? 4 : 3;
+
+  lcd.fillRect(0, y - 8, lcd.width(), height + 16, DISPLAY_BACKGROUND);
+  lcd.setTextDatum(lgfx::middle_center);
+  lcd.setTextColor(row == 0 ? DISPLAY_WHITE : DISPLAY_MUTED, DISPLAY_BACKGROUND);
+  lcd.setTextSize(textSize);
+  while (textSize > 1 && lcd.textWidth(text) > maxWidth) {
+    lcd.setTextSize(--textSize);
+  }
+  lcd.drawString(text, lcd.width() / 2, y + height / 2);
+  lcd.setTextDatum(lgfx::top_left);
 }
 
 void showMessage(String first, String second) {
+  drawDisplayFrame();
   printLine(0, first);
   printLine(1, second);
 }
@@ -187,45 +255,6 @@ String rfidUid() {
 
 bool hasValidClock() {
   return time(nullptr) >= MINIMUM_VALID_TIME;
-}
-
-void onInternetTimeSync(struct timeval* timestamp) {
-  rtcSyncPending = true;
-}
-
-void initializeRtc() {
-  // Store UTC in the RTC; LCD and attendance payloads use Philippine time.
-  setenv("TZ", "PHT-8", 1);
-  tzset();
-  sntp_set_time_sync_notification_cb(onInternetTimeSync);
-  rtcAvailable = rtc.begin(&Wire);
-  if (!rtcAvailable) {
-    Serial.println("DS3231 not detected. Check 3.3V, GND, SDA->D21, SCL->D22.");
-    return;
-  }
-  if (rtc.lostPower()) {
-    Serial.println("DS3231 needs internet time sync before offline attendance is available.");
-    return;
-  }
-  DateTime storedTime = rtc.now();
-  if (!storedTime.isValid() || storedTime.unixtime() < MINIMUM_VALID_TIME) {
-    Serial.println("DS3231 time is invalid. Waiting for internet time sync.");
-    return;
-  }
-  struct timeval restoredTime = {};
-  restoredTime.tv_sec = storedTime.unixtime();
-  settimeofday(&restoredTime, nullptr);
-  Serial.println("DS3231 detected. System clock restored from battery-backed RTC (UTC).");
-}
-
-void syncRtcFromInternet() {
-  if (!rtcSyncPending) return;
-  rtcSyncPending = false;
-  if (!hasValidClock()) return;
-  if (!rtcAvailable) rtcAvailable = rtc.begin(&Wire);
-  if (!rtcAvailable) return;
-  rtc.adjust(DateTime(static_cast<uint32_t>(time(nullptr))));
-  Serial.println("DS3231 updated from internet time. Offline clock is ready.");
 }
 
 uint32_t storedOfflineRecordCount() {
@@ -464,14 +493,12 @@ void setupFingerprint() {
 }
 
 bool reconnectFingerprint() {
-  if (enrollmentCancelled) return false;
   if (fingerprintAvailable) return true;
 
   showMessage("AS608 reconnect", "Please wait...");
   fingerprintAvailable = false;
   for (int attempt = 1; attempt <= 5 && !fingerprintAvailable; attempt++) {
     Serial.println("Reconnecting AS608, attempt " + String(attempt) + " of 5...");
-    if (enrollmentCancelled) return false;
     fingerprintAvailable = finger.verifyPassword();
     if (!fingerprintAvailable) {
       updateRegistrationIndicator();
@@ -500,7 +527,6 @@ void addHardwareHeaders(HTTPClient& http) {
 }
 
 bool sendEnrollmentResult(String id, String status, String identifier, String message) {
-  if (enrollmentCancelled) return false;
   HTTPClient http;
   String url = String(API_BASE_URL) + "/enrollments/" + id + "/result";
   if (!http.begin(secureClient, url)) return false;
@@ -534,7 +560,6 @@ int findFreeFingerprintSlot() {
   Serial.println("AS608 capacity: " + String(maximum) +
                  ", stored: " + String(finger.templateCount));
   for (int offset = 0; offset < maximum; offset++) {
-    if (enrollmentCancelled) return -1;
     updateRegistrationIndicator();
     int slot = ((firstSlot - 1 + offset) % maximum) + 1;
     uint8_t result = finger.loadModel(slot);
@@ -554,7 +579,6 @@ int findFreeFingerprintSlot() {
 bool waitForFingerprintImage(unsigned long timeoutMs) {
   unsigned long started = millis();
   while (millis() - started < timeoutMs) {
-    if (enrollmentCancelled) return false;
     updateRegistrationIndicator();
     uint8_t result = finger.getImage();
     if (result == FINGERPRINT_OK) return true;
@@ -567,7 +591,6 @@ bool waitForFingerprintImage(unsigned long timeoutMs) {
 void waitForFingerRemoval() {
   unsigned long started = millis();
   while (millis() - started < 15000 && finger.getImage() != FINGERPRINT_NOFINGER) {
-    if (enrollmentCancelled) return;
     updateRegistrationIndicator();
     delay(80);
   }
@@ -578,7 +601,6 @@ bool captureFingerprintModel() {
   if (!waitForFingerprintImage(30000) || finger.image2Tz(1) != FINGERPRINT_OK) return false;
   showMessage("Remove finger", "");
   waitForFingerRemoval();
-  if (enrollmentCancelled) return false;
   delay(500);
   showMessage("Place same", "finger again");
   if (!waitForFingerprintImage(30000) || finger.image2Tz(2) != FINGERPRINT_OK) return false;
@@ -587,7 +609,6 @@ bool captureFingerprintModel() {
 
 void enrollFingerprint(String id, String currentIdentifier) {
   if (!reconnectFingerprint()) {
-    if (enrollmentCancelled) return;
     sendEnrollmentResult(id, "failed", "", "AS608 is not available.");
     errorSignal();
     showMessage("AS608 Error", "Check wiring");
@@ -598,7 +619,6 @@ void enrollFingerprint(String id, String currentIdentifier) {
   // Start the user-facing scan immediately. Slot lookup happens only after
   // both images are captured, so it cannot delay the LCD prompt.
   if (!captureFingerprintModel()) {
-    if (enrollmentCancelled) return;
     sendEnrollmentResult(id, "failed", "", "Fingerprint capture failed.");
     errorSignal();
     showMessage("Enroll failed", "Try again");
@@ -608,7 +628,6 @@ void enrollFingerprint(String id, String currentIdentifier) {
 
   showMessage("Saving finger", "Please wait...");
   int newSlot = findFreeFingerprintSlot();
-  if (enrollmentCancelled) return;
   if (newSlot < 0) {
     sendEnrollmentResult(id, "failed", "", "Could not read AS608 fingerprint storage. Check sensor wiring and power.");
     errorSignal();
@@ -646,7 +665,6 @@ void enrollFingerprint(String id, String currentIdentifier) {
   } else {
     finger.deleteModel(newSlot);
     nextFingerprintSlotHint = newSlot;
-    if (enrollmentCancelled) return;
     errorSignal();
     showMessage("Server rejected", "fingerprint");
   }
@@ -657,7 +675,6 @@ void enrollRfid(String id) {
   showMessage("Tap RFID card", "Waiting...");
   unsigned long started = millis();
   while (millis() - started < 60000) {
-    if (enrollmentCancelled) return;
     updateRegistrationIndicator();
     if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
       String uid = rfidUid();
@@ -667,7 +684,6 @@ void enrollRfid(String id) {
         successSignal();
         showMessage("RFID card", "Registered");
       } else {
-        if (enrollmentCancelled) return;
         errorSignal();
         showMessage("Server rejected", "RFID card");
       }
@@ -690,29 +706,8 @@ void enrollmentPollTask(void* parameter) {
   HTTPClient http;
   String url = String(API_BASE_URL) + "/enrollment";
   bool requestReady = false;
-  EnrollmentRequest monitoredRequest = {};
 
   while (true) {
-    if (enrollmentMonitorQueue) {
-      xQueueReceive(enrollmentMonitorQueue, &monitoredRequest, 0);
-    }
-    if (enrollmentBusy && monitoredRequest.id[0] && WiFi.status() == WL_CONNECTED) {
-      HTTPClient statusHttp;
-      String statusUrl = String(API_BASE_URL) + "/enrollments/" + monitoredRequest.id + "/status";
-      if (statusHttp.begin(enrollmentClient, statusUrl)) {
-        statusHttp.setConnectTimeout(1500);
-        statusHttp.setTimeout(2000);
-        addHardwareHeaders(statusHttp);
-        int statusCode = statusHttp.GET();
-        String status = jsonValue(statusHttp.getString(), "status");
-        statusHttp.end();
-        if (activeEnrollmentId == String(monitoredRequest.id).toInt() &&
-            (statusCode == 404 || (statusCode == 200 &&
-            (status == "cancelled" || status == "expired" || status == "failed")))) {
-          enrollmentCancelled = true;
-        }
-      }
-    }
     bool queueIsEmpty = enrollmentQueue && uxQueueMessagesWaiting(enrollmentQueue) == 0;
     if (ENABLE_REMOTE_ENROLLMENT &&
         !enrollmentBusy &&
@@ -771,9 +766,6 @@ void processEnrollmentRequest() {
   EnrollmentRequest request;
   if (xQueueReceive(enrollmentQueue, &request, 0) != pdTRUE) return;
 
-  enrollmentCancelled = false;
-  activeEnrollmentId = String(request.id).toInt();
-  if (enrollmentMonitorQueue) xQueueOverwrite(enrollmentMonitorQueue, &request);
   enrollmentBusy = true;
   startRegistrationIndicator();
   String method = String(request.method);
@@ -783,13 +775,6 @@ void processEnrollmentRequest() {
   else if (method == "fingerprint") enrollFingerprint(String(request.id), String(request.currentIdentifier));
   stopRegistrationIndicator();
   enrollmentBusy = false;
-  if (enrollmentCancelled) {
-    Serial.println("Registration cancelled or expired. Returning to clock.");
-    waitForFingerRelease = true;
-    fingerReleaseStarted = millis();
-    showClock();
-    lastClockUpdate = millis();
-  }
 }
 
 int postAttendanceRecord(const OfflineAttendanceRecord& record, String& response) {
@@ -962,11 +947,14 @@ void setup() {
   digitalWrite(GREEN_LED_PIN, LOW);
   digitalWrite(RED_LED_PIN, LOW);
   digitalWrite(YELLOW_LED_PIN, HIGH);
-  Wire.begin(21, 22);
+  pinMode(RFID_SS_PIN, OUTPUT);
+  pinMode(TFT_CS_PIN, OUTPUT);
+  digitalWrite(RFID_SS_PIN, HIGH);
+  digitalWrite(TFT_CS_PIN, HIGH);
+  SPI.begin(18, 19, 23);
   lcd.init();
-  lcd.backlight();
-  initializeRtc();
-  SPI.begin(18, 19, 23, RFID_SS_PIN);
+  lcd.setRotation(1);
+  drawDisplayFrame();
   rfid.PCD_Init();
   rfid.PCD_SetAntennaGain(MFRC522::RxGain_max);
   byte rfidVersion = rfid.PCD_ReadRegister(rfid.VersionReg);
@@ -981,8 +969,7 @@ void setup() {
   WiFi.setTxPower(WIFI_POWER_15dBm);
   connectWiFi();
   enrollmentQueue = xQueueCreate(1, sizeof(EnrollmentRequest));
-  enrollmentMonitorQueue = xQueueCreate(1, sizeof(EnrollmentRequest));
-  if (enrollmentQueue && enrollmentMonitorQueue) {
+  if (enrollmentQueue) {
     xTaskCreatePinnedToCore(enrollmentPollTask, "enrollment-poll", 12288, nullptr, 1, nullptr, 0);
     Serial.println("Background enrollment polling started.");
   } else {
@@ -995,7 +982,6 @@ void setup() {
 
 void loop() {
   maintainWiFi();
-  syncRtcFromInternet();
 
   if (millis() - lastClockUpdate >= 1000) {
     showClock();
