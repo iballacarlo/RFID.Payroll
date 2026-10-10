@@ -209,7 +209,7 @@ class EmployeeController extends Controller
                 Rule::unique('users', 'email')->ignore($linkedUserId),
             ],
             'contact_no' => ['nullable', 'regex:/^\+639\d{9}$/'],
-            'highest_educational_attainment' => [$isCreating ? 'nullable' : 'required', Rule::in([
+            'highest_educational_attainment' => ['required', Rule::in([
                 "Bachelor's Degree",
                 'Post-Baccalaureate Certificate or Diploma',
                 "Master's Degree Units",
@@ -218,7 +218,7 @@ class EmployeeController extends Controller
                 'Doctorate Degree',
                 'Postdoctoral Studies',
             ])],
-            'service_start_date' => [$isCreating ? 'nullable' : 'required', 'date', 'before_or_equal:today'],
+            'service_start_date' => ['required', 'date', 'before_or_equal:today'],
             'faculty_rank_id' => [
                 'required',
                 Rule::exists('faculty_ranks', 'id')->where(fn ($query) => $query->where('is_active', true)),

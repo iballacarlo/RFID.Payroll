@@ -204,6 +204,8 @@ class EmployeeCredentialTest extends TestCase
             'middle_name' => 'Faculty',
             'last_name' => 'Member',
             'email' => 'new.faculty@cvsu.edu.ph',
+            'highest_educational_attainment' => "Master's Degree",
+            'service_start_date' => '2020-06-01',
             'faculty_rank_id' => $rank->id,
             'rate_amount' => $rank->rate_amount,
             'status' => 'active',
@@ -211,6 +213,8 @@ class EmployeeCredentialTest extends TestCase
         ]);
 
         $employee = Employee::where('email', 'new.faculty@cvsu.edu.ph')->firstOrFail();
+        $this->assertSame("Master's Degree", $employee->highest_educational_attainment);
+        $this->assertSame('2020-06-01', Carbon::parse($employee->service_start_date)->format('Y-m-d'));
         $response->assertRedirect(route('employees.edit', $employee).'#attendance-identifiers')
             ->assertSessionHas('temporary_credentials');
 
@@ -225,6 +229,23 @@ class EmployeeCredentialTest extends TestCase
             && str_contains($request['subject'], 'account is ready')
             && str_contains($request['message'], $credentials['password'])
             && str_contains($request['html'], e($credentials['password'])));
+    }
+
+    public function test_creating_faculty_requires_attainment_and_service_start_before_registration(): void
+    {
+        $rank = FacultyRank::where('is_active', true)->firstOrFail();
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->post(route('employees.store'), [
+                'first_name' => 'Incomplete',
+                'last_name' => 'Faculty',
+                'email' => 'incomplete.faculty@cvsu.edu.ph',
+                'faculty_rank_id' => $rank->id,
+                'status' => 'active',
+            ])
+            ->assertSessionHasErrors(['highest_educational_attainment', 'service_start_date']);
+
+        $this->assertDatabaseMissing('employees', ['email' => 'incomplete.faculty@cvsu.edu.ph']);
+        $this->assertDatabaseMissing('users', ['email' => 'incomplete.faculty@cvsu.edu.ph']);
     }
 
     public function test_selected_rank_automatically_controls_the_employee_hourly_rate(): void
